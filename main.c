@@ -3,6 +3,15 @@
 #include "mlx.h"
 #include <stdlib.h>
 
+#include <stdio.h>
+
+typedef struct s_fdf {
+    void *mlx;
+    void *win;
+    void *img;
+    float scale;
+}               t_fdf;
+
 int from_black_to_red(float percent) {
     int red = 255 * percent;
     return red << 16;
@@ -19,17 +28,17 @@ void putpixel(int **data, unsigned x, unsigned y, unsigned color) {
     (*data)[x + y * 800] = color;
 }
 
-void mondel(int **data) {
+void mondel(t_fdf *fract, float some) {
 
     double ImageHeight = 800;
     double ImageWidth = 800;
 
     //Минимальная действительная часть
-    double MinRe = -2.0;
+    double MinRe = -2.0 * fract->scale + some;
     //Максимальная дейсвительная часть
-    double MaxRe = 1.0;
+    double MaxRe = 1.0 * fract->scale - some;
     //Минимальная мнимая часть
-    double MinIm = -1.2;
+    double MinIm = -1.2 * fract->scale;
     //Чтобы не было растяжения изображения
     //Предствим максимальную мнимую часть через отношение 
     double MaxIm = MinIm+(MaxRe-MinRe)*ImageHeight/ImageWidth;
@@ -43,6 +52,14 @@ void mondel(int **data) {
     //Также с мнимой частью
     double Im_factor = (MaxIm-MinIm)/(ImageHeight-1);
     unsigned MaxIterations = 200;
+
+    mlx_destroy_image(fract->mlx, fract->img);
+    fract->img = mlx_new_image(fract->mlx, 800, 800);
+
+    int	bpp;
+    int	size_l;
+    int	endian;
+    int	*data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
 
     //Проходим попиксельно по высоте
     for(unsigned y=0; y<ImageHeight; ++y)
@@ -66,10 +83,10 @@ void mondel(int **data) {
                 {
                     if (n < MaxIterations/2) {
                         float p = (float)n / (MaxIterations/2);
-                        putpixel(data, x, y, from_black_to_red(p));
+                        putpixel(&data, x, y, from_black_to_red(p));
                     } else {
                         float p1 = (float)n / MaxIterations;
-                        putpixel(data, x, y, from_red_to_white(p1));
+                        putpixel(&data, x, y, from_red_to_white(p1));
                     }
                     isInside = 0;
                     break;
@@ -85,32 +102,62 @@ void mondel(int **data) {
             //if(isInside) { putpixel(data, x, y); }
         }
     }
-
+    mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
 }
 
+// void increase(void* mlx, void* img) {
+//     mlx_destroy_image(mlx, img);
+    
+// }
+
+int mouse_move(int x, int y, void *param) {
+    printf("Move (%d, %d)\n", x, y);
+    return 1;
+}
+
+int mouse_hook(int button, int x, int y, void *param) {
+    t_fdf *fract = (t_fdf *)param;
+    printf("Button %d (%d, %d)\n", button, x, y);
+    //scroll up
+    if (button == 5) {
+        fract->scale = fract->scale - 0.01; 
+
+        float z = (y - 400) * 0.01;
+
+        mondel(fract, z);
+    }
+    //scroll down
+    if (button == 4) {
+
+    }
+
+    return 0;
+}
 
 
 int main(int ac, char **av)
 {
+    t_fdf fract;
+    
     int a = ac;
     char **b = av;
 
-    void *mlx = mlx_init();
-    void *win = mlx_new_window(mlx, 800, 800, "fractol");
-    void *img_ptr = mlx_new_image(mlx, 800, 800);
+    fract.mlx = mlx_init();
+    fract.win = mlx_new_window(fract.mlx, 800, 800, "fractol");
+    fract.img = mlx_new_image(fract.mlx, 800, 800);
+    fract.scale = 1;
 
-    mlx_put_image_to_window(mlx, win, img_ptr, 0, 0);
-
-    int	bpp;
-    int	size_l;
-    int	endian;
-
-    int	*data = (int *)mlx_get_data_addr(img_ptr, &bpp, &size_l, &endian);
-
-    mondel(&data);
     
-    mlx_put_image_to_window(mlx, win, img_ptr, 0, 0);
 
-    mlx_loop(mlx);
+    mondel(&fract, 0);
+    
+
+    // mlx_key_hook(win, increase, 125);
+    // mlx_key_hook(win, decrease, 125);
+
+    mlx_hook(fract.win, 6, 0L, mouse_move, 0);
+    mlx_hook(fract.win, 4, 0L, mouse_hook, &fract);
+
+    mlx_loop(fract.mlx);
     return 0;
 }
