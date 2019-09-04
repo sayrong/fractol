@@ -4,13 +4,28 @@
 #include <stdlib.h>
 
 #include <stdio.h>
+#include "libft.h"
+
+
+typedef struct s_complex_n {
+    double re;
+    double im;
+}              t_complex_n;
+
+typedef struct s_viewpoint {
+    t_complex_n *min;
+    t_complex_n *max;
+}              t_viewpoint;
 
 typedef struct s_fdf {
     void *mlx;
     void *win;
     void *img;
-    float scale;
+    t_viewpoint *point;
 }               t_fdf;
+
+
+
 
 int from_black_to_red(float percent) {
     int red = 255 * percent;
@@ -28,25 +43,33 @@ void putpixel(int **data, unsigned x, unsigned y, unsigned color) {
     (*data)[x + y * 800] = color;
 }
 
-void mondel(t_fdf *fract, float some) {
+void mondel(t_fdf *fract) {
 
     double ImageHeight = 800;
     double ImageWidth = 800;
 
+    
     //Минимальная действительная часть
-    double MinRe = -2.0 * fract->scale + some;
+    double MinRe = fract->point->min->re;//-2.0;
     //Максимальная дейсвительная часть
-    double MaxRe = 1.0 * fract->scale - some;
+    double MaxRe = fract->point->max->re;//1.0;
     //Минимальная мнимая часть
-    double MinIm = -1.2 * fract->scale;
+    double MinIm = fract->point->min->im;//(-1.2);
     //Чтобы не было растяжения изображения
     //Предствим максимальную мнимую часть через отношение 
-    double MaxIm = MinIm+(MaxRe-MinRe)*ImageHeight/ImageWidth;
+    double MaxIm = fract->point->max->im;//(1.2); //MinIm+(MaxRe-MinRe)*ImageHeight/ImageWidth;
     //Чтобы перевести пиксель в действительную часть и мнимую
     //c_re = MinRe + x*(MaxRe-MinRe)/(ImageWidth-1);
     //c_im = MaxIm - y*(MaxIm-MinIm)/(ImageHeight-1);
 
-    //Упростим. 
+    
+//    if (some != 0) {
+//        double dif = (MaxIm - MinIm) * 0.1;
+//        MinIm += dif;
+//        MaxIm += dif;
+//    }
+//
+    //Упростим.
     //Чтобы получить пропорциональность разделим всю область действительной части на ширину пиксельно
     double Re_factor = (MaxRe-MinRe)/(ImageWidth-1);
     //Также с мнимой частью
@@ -120,16 +143,52 @@ int mouse_hook(int button, int x, int y, void *param) {
     printf("Button %d (%d, %d)\n", button, x, y);
     //scroll up
     if (button == 5) {
-        fract->scale = fract->scale - 0.01; 
+        
+        fract->point->max->im = fract->point->max->im * 0.9;
+        fract->point->max->re = fract->point->max->re * 0.9;
+        fract->point->min->im = fract->point->min->im * 0.9;
+        fract->point->min->re = fract->point->min->re * 0.9;
 
-        float z = (y - 400) * 0.01;
-
-        mondel(fract, z);
+        double width = fract->point->max->re - fract->point->min->re;
+        double hight = fract->point->max->im - fract->point->min->im;
+        
+        //convert to cordinate default
+        double X = x - 400;
+        double Y = y - 400;
+        
+        double factorX = width / 800.0;
+        double factorY = hight / 800.0;
+        
+        double newX = factorX * X;
+        double newY = factorY * Y;
+        
+        
+        
+        double u = 0.1 * (newX);
+        double v = 0.1 * (newY);
+        fract->point->max->im += u;
+        fract->point->min->im += u;
+        
+        fract->point->max->re += v;
+        fract->point->min->re += v;
+        
     }
     //scroll down
     if (button == 4) {
-
+        double u = 0.1 * (fract->point->max->im / 2.0);
+        double v = 0.1 * (fract->point->max->re / 2.0);
+        fract->point->max->im += u;
+        fract->point->min->im += u;
+        
+        fract->point->max->re += v;
+        fract->point->min->re += v;
+        
+//        double z = 1 - abs(y / 400.0);
+//        fract->point->max->im += 0.1;
+//        fract->point->min->im += 0.1;
     }
+    
+    mondel(fract);
 
     return 0;
 }
@@ -139,17 +198,29 @@ int main(int ac, char **av)
 {
     t_fdf fract;
     
+    t_viewpoint point;
+    t_complex_n defMax;
+    t_complex_n defMin;
+    
+    defMax.re = 1.0;
+    defMax.im = 1.2;
+    defMin.re = -2.0;
+    defMin.im = -1.2;
+    
+    point.max = &defMax;
+    point.min = &defMin;
+    
     int a = ac;
     char **b = av;
 
     fract.mlx = mlx_init();
     fract.win = mlx_new_window(fract.mlx, 800, 800, "fractol");
     fract.img = mlx_new_image(fract.mlx, 800, 800);
-    fract.scale = 1;
+    fract.point = &point;
 
     
 
-    mondel(&fract, 0);
+    mondel(&fract);
     
 
     // mlx_key_hook(win, increase, 125);
