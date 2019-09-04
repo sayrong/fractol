@@ -144,33 +144,49 @@ int mouse_hook(int button, int x, int y, void *param) {
     //scroll up
     if (button == 5) {
         
-        fract->point->max->im = fract->point->max->im * 0.9;
-        fract->point->max->re = fract->point->max->re * 0.9;
-        fract->point->min->im = fract->point->min->im * 0.9;
-        fract->point->min->re = fract->point->min->re * 0.9;
+		
 
         double width = fract->point->max->re - fract->point->min->re;
         double hight = fract->point->max->im - fract->point->min->im;
-        
-        //convert to cordinate default
+		width *= 0.9;
+		hight *= 0.9;
+//
+//        //convert to cordinate default
         double X = x - 400;
-        double Y = y - 400;
-        
+        double Y = 400 - y;
+//
         double factorX = width / 800.0;
         double factorY = hight / 800.0;
-        
+//
         double newX = factorX * X;
         double newY = factorY * Y;
-        
-        
-        
-        double u = 0.1 * (newX);
-        double v = 0.1 * (newY);
-        fract->point->max->im += u;
-        fract->point->min->im += u;
-        
-        fract->point->max->re += v;
-        fract->point->min->re += v;
+//
+//		fract->point->max->im += newY;
+//		fract->point->min->im += newY;
+//
+//		fract->point->max->re += newX;
+//		fract->point->min->re += newX;
+		
+		
+		fract->point->max->im = fract->point->max->im * 0.9;
+		fract->point->max->re = fract->point->max->re * 0.9;
+		fract->point->min->im = fract->point->min->im * 0.9;
+		fract->point->min->re = fract->point->min->re * 0.9;
+//
+//        //double u = 0.9 * (newX);
+//        //double v = 0.9 * (newY);
+//        //fract->point->max->im += v;
+//        //fract->point->min->im += v;
+//
+//        //fract->point->max->re += u;
+//        //fract->point->min->re += u;
+//
+//		fract->point->max->im -= newY;
+//		fract->point->min->im -= newY;
+//
+//		fract->point->max->re -= newX;
+//		fract->point->min->re -= newX;
+		
         
     }
     //scroll down
@@ -187,6 +203,57 @@ int mouse_hook(int button, int x, int y, void *param) {
 //        fract->point->max->im += 0.1;
 //        fract->point->min->im += 0.1;
     }
+	
+	if (button == 1) {
+		double width = fract->point->max->re - fract->point->min->re;
+		double hight = fract->point->max->im - fract->point->min->im;
+		
+		//convert to cordinate default
+		double X = x - 400;
+		double Y = 400 - y;
+		
+		double factorX = width / 800.0;
+		double factorY = hight / 800.0;
+		
+		double newX = factorX * X;
+		double newY = factorY * Y;
+		
+
+		
+
+		fract->point->max->im = fract->point->max->im * 0.9;
+		fract->point->max->re = fract->point->max->re * 0.9;
+		fract->point->min->im = fract->point->min->im * 0.9;
+		fract->point->min->re = fract->point->min->re * 0.9;
+		
+//		fract->point->max->im += newY * 0.9;
+//		fract->point->min->im += newY * 0.9;
+//
+//		fract->point->max->re += newX * 0.9;
+//		fract->point->min->re += newX * 0.9;
+		
+		double width1 = fract->point->max->re - fract->point->min->re;
+		double hight1 = fract->point->max->im - fract->point->min->im;
+		
+		double difY = (hight - hight1) * 0.5;
+		double difX = (width - width1) * 0.5;
+		
+		double factorX1 = width1 / 800.0;
+		double factorY1 = hight1 / 800.0;
+		
+		double newX1 = factorX1 * X;
+		double newY1 = factorY1 * Y;
+		
+		double xx = newX - newX1;
+		double yy = newY - newY1;
+		
+		fract->point->max->im += yy;
+		fract->point->min->im += yy;
+
+		fract->point->max->re += xx;
+		fract->point->min->re += xx;
+		
+	}
     
     mondel(fract);
 
