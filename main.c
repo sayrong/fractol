@@ -15,6 +15,9 @@ typedef struct s_complex_n {
 typedef struct s_viewpoint {
     t_complex_n *min;
     t_complex_n *max;
+    double moveX;
+    double moveY;
+    double scale;
 }              t_viewpoint;
 
 typedef struct s_fdf {
@@ -74,26 +77,30 @@ void mondel(t_fdf *fract) {
     double Re_factor = (MaxRe-MinRe)/(ImageWidth-1);
     //Также с мнимой частью
     double Im_factor = (MaxIm-MinIm)/(ImageHeight-1);
-    unsigned MaxIterations = 200;
+    unsigned MaxIterations = 40;
 
-    mlx_destroy_image(fract->mlx, fract->img);
-    fract->img = mlx_new_image(fract->mlx, 800, 800);
+    //mlx_destroy_image(fract->mlx, fract->img);
+    //fract->img = mlx_new_image(fract->mlx, 800, 800);
 
     int	bpp;
     int	size_l;
     int	endian;
     int	*data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
-
+    
+    
+    data = ft_bzero(data, 800*800);
+    //int a = mlx_clear_window(fract->mlx, fract->win);
+    
     //Проходим попиксельно по высоте
     for(unsigned y=0; y<ImageHeight; ++y)
     {
         //Вычисляем мнимую часть
-        double c_im = MaxIm - y*Im_factor;
+        double c_im = MaxIm - y*Im_factor * fract->point->scale - fract->point->moveY;
         //Проходим по всей широте
         for(unsigned x=0; x<ImageWidth; ++x)
         {
             //Вычисляем действительную часть
-            double c_re = MinRe + x*Re_factor;
+            double c_re = MinRe + x*Re_factor * fract->point->scale + fract->point->moveX;
 
             //Проверяем на принадлежность
             double Z_re = c_re, Z_im = c_im;
@@ -125,6 +132,7 @@ void mondel(t_fdf *fract) {
             //if(isInside) { putpixel(data, x, y); }
         }
     }
+    putpixel(&data, 400, 400, 255 << 8);
     mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
 }
 
@@ -132,6 +140,24 @@ void mondel(t_fdf *fract) {
 //     mlx_destroy_image(mlx, img);
     
 // }
+
+void scale(t_fdf *fract, double scale, int x, int y) {
+    double width;
+    double height;
+    double newWidth;
+    double newHeight;
+    
+    width = (fract->point->max->re - fract->point->min->re) * fract->point->scale;
+    height = (fract->point->max->im - fract->point->min->im) * fract->point->scale;
+    
+    fract->point->scale *= scale;
+    
+    newWidth = (fract->point->max->re - fract->point->min->re) * fract->point->scale;
+    newHeight = (fract->point->max->im - fract->point->min->im) * fract->point->scale;
+    
+    fract->point->moveX += ((double)x / 800) * (width - newWidth);
+    fract->point->moveY += ((double)y / 800) * (height - newHeight);
+}
 
 int mouse_move(int x, int y, void *param) {
     printf("Move (%d, %d)\n", x, y);
@@ -144,114 +170,33 @@ int mouse_hook(int button, int x, int y, void *param) {
     //scroll up
     if (button == 5) {
         
-		
-
-        double width = fract->point->max->re - fract->point->min->re;
-        double hight = fract->point->max->im - fract->point->min->im;
-		width *= 0.9;
-		hight *= 0.9;
-//
-//        //convert to cordinate default
-        double X = x - 400;
-        double Y = 400 - y;
-//
-        double factorX = width / 800.0;
-        double factorY = hight / 800.0;
-//
-        double newX = factorX * X;
-        double newY = factorY * Y;
-//
-//		fract->point->max->im += newY;
-//		fract->point->min->im += newY;
-//
-//		fract->point->max->re += newX;
-//		fract->point->min->re += newX;
-		
-		
-		fract->point->max->im = fract->point->max->im * 0.9;
-		fract->point->max->re = fract->point->max->re * 0.9;
-		fract->point->min->im = fract->point->min->im * 0.9;
-		fract->point->min->re = fract->point->min->re * 0.9;
-//
-//        //double u = 0.9 * (newX);
-//        //double v = 0.9 * (newY);
-//        //fract->point->max->im += v;
-//        //fract->point->min->im += v;
-//
-//        //fract->point->max->re += u;
-//        //fract->point->min->re += u;
-//
-//		fract->point->max->im -= newY;
-//		fract->point->min->im -= newY;
-//
-//		fract->point->max->re -= newX;
-//		fract->point->min->re -= newX;
-		
+        scale(fract, 0.9, x, y);
         
     }
     //scroll down
     if (button == 4) {
-        double u = 0.1 * (fract->point->max->im / 2.0);
-        double v = 0.1 * (fract->point->max->re / 2.0);
-        fract->point->max->im += u;
-        fract->point->min->im += u;
         
-        fract->point->max->re += v;
-        fract->point->min->re += v;
+        scale(fract, 1.1, x, y);
         
-//        double z = 1 - abs(y / 400.0);
-//        fract->point->max->im += 0.1;
-//        fract->point->min->im += 0.1;
     }
 	
 	if (button == 1) {
-		double width = fract->point->max->re - fract->point->min->re;
-		double hight = fract->point->max->im - fract->point->min->im;
-		
-		//convert to cordinate default
-		double X = x - 400;
-		double Y = 400 - y;
-		
-		double factorX = width / 800.0;
-		double factorY = hight / 800.0;
-		
-		double newX = factorX * X;
-		double newY = factorY * Y;
-		
+        
+        double w = (fract->point->max->re - fract->point->min->re) * fract->point->scale;
+        double h = (fract->point->max->im - fract->point->min->im) * fract->point->scale;
 
-		
-
-		fract->point->max->im = fract->point->max->im * 0.9;
-		fract->point->max->re = fract->point->max->re * 0.9;
-		fract->point->min->im = fract->point->min->im * 0.9;
-		fract->point->min->re = fract->point->min->re * 0.9;
-		
-//		fract->point->max->im += newY * 0.9;
-//		fract->point->min->im += newY * 0.9;
-//
-//		fract->point->max->re += newX * 0.9;
-//		fract->point->min->re += newX * 0.9;
-		
-		double width1 = fract->point->max->re - fract->point->min->re;
-		double hight1 = fract->point->max->im - fract->point->min->im;
-		
-		double difY = (hight - hight1) * 0.5;
-		double difX = (width - width1) * 0.5;
-		
-		double factorX1 = width1 / 800.0;
-		double factorY1 = hight1 / 800.0;
-		
-		double newX1 = factorX1 * X;
-		double newY1 = factorY1 * Y;
-		
-		double xx = newX - newX1;
-		double yy = newY - newY1;
-		
-		fract->point->max->im += yy;
-		fract->point->min->im += yy;
-
-		fract->point->max->re += xx;
-		fract->point->min->re += xx;
+        fract->point->scale *= 0.9;
+        
+        double nw = (fract->point->max->re - fract->point->min->re) * fract->point->scale;
+        double nh = (fract->point->max->im - fract->point->min->im) * fract->point->scale;
+        
+        
+        double diffY = h - nh;
+        double diffX = w - nw;
+        
+        fract->point->moveX += ((double)x / 800) * diffX;
+        fract->point->moveY += ((double)y / 800) * diffY;
+        
 		
 	}
     
@@ -259,6 +204,7 @@ int mouse_hook(int button, int x, int y, void *param) {
 
     return 0;
 }
+
 
 
 int main(int ac, char **av)
@@ -274,8 +220,17 @@ int main(int ac, char **av)
     defMin.re = -2.0;
     defMin.im = -1.2;
     
+//    defMax.re = 0.54999216243581273;
+//    defMax.im = 0.68203202655607631;
+//    defMin.re = 0.049676711445815321;
+//    defMin.im = 0.28177966576407854;
+    
     point.max = &defMax;
     point.min = &defMin;
+    
+    point.moveX = 0;
+    point.moveY = 0;
+    point.scale = 1;
     
     int a = ac;
     char **b = av;
@@ -283,6 +238,7 @@ int main(int ac, char **av)
     fract.mlx = mlx_init();
     fract.win = mlx_new_window(fract.mlx, 800, 800, "fractol");
     fract.img = mlx_new_image(fract.mlx, 800, 800);
+    mlx_put_image_to_window(fract.mlx, fract.win, fract.img, 0, 0);
     fract.point = &point;
 
     
