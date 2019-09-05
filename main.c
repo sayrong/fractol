@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 #include "libft.h"
-
+#include <pthread.h>
 
 typedef struct s_complex_n {
     double re;
@@ -45,6 +45,37 @@ int from_red_to_white(double percent) {
 void putpixel(int **data, unsigned x, unsigned y, unsigned color) {
     (*data)[x + y * 800] = color;
 }
+
+
+void multiThread(int number) {
+	int ImageHeight = 800;
+	int ImageWidth = 800;
+	
+	int img_h_per_thread = 800 / 4;
+	int img_w_per_thread = 800 / 4;
+	
+	for(unsigned y = img_h_per_thread * number; y < ImageHeight; ++y) {
+		for(unsigned x=0; x<ImageWidth; ++x) {
+			
+		}
+	}
+}
+
+
+
+
+void create() {
+	
+	pthread_t threads[4];
+	
+	int i = 0;
+	for (i = 0; i < 4; i++) {
+		pthread_create(threads + i, NULL, multiThread, (void *)i);
+	}
+}
+
+
+
 
 void mondel(t_fdf *fract) {
 
@@ -88,19 +119,20 @@ void mondel(t_fdf *fract) {
     int	*data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
     
     
-    data = ft_bzero(data, 800*800);
+    ft_bzero(data, 800*800 * 4);
+	mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
     //int a = mlx_clear_window(fract->mlx, fract->win);
     
     //Проходим попиксельно по высоте
     for(unsigned y=0; y<ImageHeight; ++y)
     {
         //Вычисляем мнимую часть
-        double c_im = MaxIm - y*Im_factor * fract->point->scale - fract->point->moveY;
+		double c_im = MaxIm - y*Im_factor * fract->point->scale - fract->point->moveY;
         //Проходим по всей широте
         for(unsigned x=0; x<ImageWidth; ++x)
         {
             //Вычисляем действительную часть
-            double c_re = MinRe + x*Re_factor * fract->point->scale + fract->point->moveX;
+			double c_re = MinRe + x*Re_factor * fract->point->scale + fract->point->moveX;
 
             //Проверяем на принадлежность
             double Z_re = c_re, Z_im = c_im;
@@ -180,27 +212,31 @@ int mouse_hook(int button, int x, int y, void *param) {
         
     }
 	
+	mondel(fract);
+	
 	if (button == 1) {
-        
-        double w = (fract->point->max->re - fract->point->min->re) * fract->point->scale;
-        double h = (fract->point->max->im - fract->point->min->im) * fract->point->scale;
-
-        fract->point->scale *= 0.9;
-        
-        double nw = (fract->point->max->re - fract->point->min->re) * fract->point->scale;
-        double nh = (fract->point->max->im - fract->point->min->im) * fract->point->scale;
-        
-        
-        double diffY = h - nh;
-        double diffX = w - nw;
-        
-        fract->point->moveX += ((double)x / 800) * diffX;
-        fract->point->moveY += ((double)y / 800) * diffY;
-        
 		
+		int	bpp;
+		int	size_l;
+		int	endian;
+		int	*data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
+		ft_bzero(data, 800*800 * 3);
+		char *aa = (char*)data;
+		int size = 800 * 800;
+//		while (size--) {
+//			aa[size] = 0;
+//		}
+		
+//		while (size--) {
+//			data[size] = 0;
+//		}
+
+		
+		//putpixel(&data, 200, 200, 255 << 8);
+		mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
 	}
     
-    mondel(fract);
+	
 
     return 0;
 }
@@ -238,10 +274,7 @@ int main(int ac, char **av)
     fract.mlx = mlx_init();
     fract.win = mlx_new_window(fract.mlx, 800, 800, "fractol");
     fract.img = mlx_new_image(fract.mlx, 800, 800);
-    mlx_put_image_to_window(fract.mlx, fract.win, fract.img, 0, 0);
     fract.point = &point;
-
-    
 
     mondel(&fract);
     
