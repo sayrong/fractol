@@ -28,7 +28,9 @@ typedef struct s_fdf {
     int threadNumber;
 }               t_fdf;
 
-
+typedef struct s_mondel {
+	double c_im;
+};
 
 
 int from_black_to_red(float percent) {
@@ -196,10 +198,91 @@ void mondel(t_fdf *fract, unsigned startY, unsigned endY, unsigned startX, unsig
     //mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
 }
 
-// void increase(void* mlx, void* img) {
-//     mlx_destroy_image(mlx, img);
-    
-// }
+
+
+//int isIncludedInMandelbrot() {
+//
+//}
+
+
+void julia(t_fdf *fract, double re, double im) {
+	double ImageHeight = 800;
+	double ImageWidth = 800;
+	
+	double newRe, newIm, oldRe, oldIm;   //real and imaginary parts of new and old
+	
+	//Минимальная действительная часть
+	double MinRe = fract->point->min->re;//-2.0;
+	//Максимальная дейсвительная часть
+	double MaxRe = fract->point->max->re;//1.0;
+	//Минимальная мнимая часть
+	double MinIm = fract->point->min->im;//(-1.2);
+	//Чтобы не было растяжения изображения
+	//Предствим максимальную мнимую часть через отношение
+	double MaxIm = fract->point->max->im;
+	
+	double Re_factor = (MaxRe-MinRe)/(ImageWidth-1);
+	double Im_factor = (MaxIm-MinIm)/(ImageHeight-1);
+	
+	double cRe, cIm;
+	
+	cRe = re;//-0.7;
+	cIm = im;//0.27015;
+	
+	int MaxIterations = 200;
+	
+	mlx_destroy_image(fract->mlx, fract->img);
+	fract->img = mlx_new_image(fract->mlx, 800, 800);
+	
+	
+	int	bpp;
+	int	size_l;
+	int	endian;
+	int	*data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
+	
+	
+	for (int y = 0; y < ImageHeight; y++) {
+		//Вычисляем мнимую часть
+		double c_im = MaxIm - y*Im_factor;
+		
+		for (int x = 0; x < ImageWidth; x++) {
+			
+			double c_re = MinRe + x*Re_factor;
+			//Проверяем на принадлежность
+			double Z_re = c_re, Z_im = c_im;
+			int isInside = 1;
+			
+			for(unsigned n=0; n<MaxIterations; ++n)
+			{
+				//Находим абсолютеное значение Z и возводим в квадрат чтобы избавиться от корня
+				double Z_re2 = Z_re*Z_re, Z_im2 = Z_im*Z_im;
+				if(Z_re2 + Z_im2 > 4)
+				{
+					if (n < MaxIterations/2) {
+						float p = (float)n / (MaxIterations/2);
+						putpixel(&data, x, y, from_black_to_red(p));
+					} else {
+						float p1 = (float)n / MaxIterations;
+						putpixel(&data, x, y, from_red_to_white(p1));
+					}
+					isInside = 0;
+					break;
+				}
+				//вычисление квадрата комплексного числа
+				//(a+bi)^2 = a^2 - b^2 + 2abi
+				//действительная часть a^2 - b^2
+				//мнимая 2abi
+				//ко всему этому прибавляем первоначально значение
+				Z_im = 2*Z_re*Z_im + cIm;
+				Z_re = Z_re2 - Z_im2 + cRe;
+			}
+			
+		}
+	}
+	mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
+	
+}
+
 
 void scale(t_fdf *fract, double scale, int x, int y) {
     double width;
@@ -221,6 +304,29 @@ void scale(t_fdf *fract, double scale, int x, int y) {
 
 int mouse_move(int x, int y, void *param) {
     printf("Move (%d, %d)\n", x, y);
+	
+	t_fdf *fract = (t_fdf *)param;
+	
+	//Минимальная действительная часть
+	double MinRe = -2.0;
+	//Максимальная дейсвительная часть
+	double MaxRe = 1.0;
+	//Минимальная мнимая часть
+	double MinIm = -1.2;
+	//Чтобы не было растяжения изображения
+	//Предствим максимальную мнимую часть через отношение
+	double MaxIm = 1.2;
+	
+	double Re_factor = (MaxRe-MinRe)/(800-1);
+	double Im_factor = (MaxIm-MinIm)/(800-1);
+	
+	
+	double c_im = MaxIm - y*Im_factor;
+	double c_re = MinRe + x*Re_factor;
+	
+	
+//	julia(fract, c_re, c_im);
+	
     return 1;
 }
 
@@ -270,6 +376,89 @@ int mouse_hook(int button, int x, int y, void *param) {
 }
 
 
+void ship(t_fdf *fract) {
+	double ImageHeight = 800;
+	double ImageWidth = 800;
+	
+	double newRe, newIm, oldRe, oldIm;   //real and imaginary parts of new and old
+	
+	//Минимальная действительная часть
+	double MinRe = -2.0;
+	//Максимальная дейсвительная часть
+	double MaxRe = 2.0;
+	//Минимальная мнимая часть
+	double MinIm = 2;
+	//Чтобы не было растяжения изображения
+	//Предствим максимальную мнимую часть через отношение
+	double MaxIm = -2;
+	
+	double Re_factor = (MaxRe-MinRe)/(ImageWidth-1);
+	double Im_factor = (MaxIm-MinIm)/(ImageHeight-1);
+	
+	double cRe, cIm;
+	
+
+	
+	int MaxIterations = 100;
+	
+	mlx_destroy_image(fract->mlx, fract->img);
+	fract->img = mlx_new_image(fract->mlx, 800, 800);
+	
+	
+	int	bpp;
+	int	size_l;
+	int	endian;
+	int	*data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
+	
+	
+	for (int y = 0; y < ImageHeight; y++) {
+		//Вычисляем мнимую часть
+		double c_im = MaxIm - y*Im_factor;
+		
+		for (int x = 0; x < ImageWidth; x++) {
+			
+			double c_re = MinRe + x*Re_factor;
+			//Проверяем на принадлежность
+			double Z_re = c_re, Z_im = c_im;
+			int isInside = 1;
+			
+			for(unsigned n=0; n<MaxIterations; ++n)
+			{
+				//Находим абсолютеное значение Z и возводим в квадрат чтобы избавиться от корня
+				double Z_re2 = Z_re*Z_re, Z_im2 = Z_im*Z_im;
+				if(Z_re2 + Z_im2 > 4)
+				{
+					if (n < MaxIterations/2) {
+						float p = (float)n / (MaxIterations/2);
+						putpixel(&data, x, y, from_black_to_red(p));
+					} else {
+						float p1 = (float)n / MaxIterations;
+						putpixel(&data, x, y, from_red_to_white(p1));
+					}
+					isInside = 0;
+					break;
+				}
+				//вычисление квадрата комплексного числа
+				//(a+bi)^2 = a^2 - b^2 + 2abi
+				//действительная часть a^2 - b^2
+				//мнимая 2abi
+				//ко всему этому прибавляем первоначально значение
+				Z_im = fabs(2*Z_re*Z_im) + c_im;
+				Z_re = fabs(Z_re2 - Z_im2 + c_re);
+			}
+			//if(isInside) { putpixel(&data, x, y, 255 << 8); }
+		}
+	}
+	mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
+	
+}
+
+
+//
+//int main(int argc, char **argv) {
+//
+//}
+
 
 int main(int ac, char **av)
 {
@@ -283,12 +472,7 @@ int main(int ac, char **av)
     defMax.im = 1.2;
     defMin.re = -2.0;
     defMin.im = -1.2;
-    
-//    defMax.re = 0.54999216243581273;
-//    defMax.im = 0.68203202655607631;
-//    defMin.re = 0.049676711445815321;
-//    defMin.im = 0.28177966576407854;
-    
+	
     point.max = &defMax;
     point.min = &defMin;
     
@@ -306,12 +490,16 @@ int main(int ac, char **av)
 
     //mondel(&fract);
     
-    create(&fract);
-    
+    //create(&fract);
+	
+	//julia(&fract, -0.7, 0.27015);
+	
+	ship(&fract);
+	
     // mlx_key_hook(win, increase, 125);
     // mlx_key_hook(win, decrease, 125);
 
-    mlx_hook(fract.win, 6, 0L, mouse_move, 0);
+    mlx_hook(fract.win, 6, 0L, mouse_move, &fract);
     mlx_hook(fract.win, 4, 0L, mouse_hook, &fract);
 
     mlx_loop(fract.mlx);
