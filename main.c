@@ -2,7 +2,6 @@
 #include "fractol.h"
 
 
-
 int from_black_to_red(float percent) {
     int red = 255 * percent;
     return red << 16;
@@ -49,10 +48,30 @@ void putpixel(int **data, unsigned x, unsigned y, unsigned color) {
 //    }
 //}
 
+int is_in_mondelbrot_set(double c_re, double c_im, int iterations) {
+	int i;
+	double c_im_tmp;
+	double Z_re;
+	double Z_im;
+
+	i = 0;
+	Z_re = c_re;
+	Z_im = c_im;
+	while ((i < iterations) && ((Z_re * Z_re + Z_im * Z_im) < 4)) {
+		c_im_tmp = Z_im;
+		Z_im = -fabs(2 * Z_re * Z_im + c_im);
+		Z_re = fabs(Z_re * Z_re - c_im_tmp * c_im_tmp + c_re);
+		i++;
+	}
+	if (i == iterations)
+		return (-1);
+	return (i);
+}
+
 void mondelNew(t_fract *fract, int step, int num) {
     double Re_factor = (fract->point->max->re - fract->point->min->re)/(WIN_WIDTH-1) * fract->point->scale;
     double Im_factor = (fract->point->max->im - fract->point->min->im)/(WIN_HEIGHT-1) * fract->point->scale;
-    unsigned MaxIterations = 2500;
+    unsigned MaxIterations = 120;
     
     int    *data = (int *)mlx_get_data_addr(fract->img, &fract->bpp, &fract->size_l, &fract->endian);
     
@@ -69,45 +88,64 @@ void mondelNew(t_fract *fract, int step, int num) {
         
         double Z_re = c_re, Z_im = c_im;
         int isInside = 1;
-        for(unsigned n=0; n<MaxIterations; ++n)
-        {
-            //Находим абсолютеное значение Z и возводим в квадрат чтобы избавиться от корня
-            double Z_re2 = Z_re*Z_re, Z_im2 = Z_im*Z_im;
-            if(Z_re2 + Z_im2 > 4)
-            {
-                if (n < MaxIterations/2) {
-                    float p = (float)n / (MaxIterations/2);
-                    putpixel(&data, x, y, from_black_to_red(p));
-                } else {
-                    float p1 = (float)n / MaxIterations;
-                    putpixel(&data, x, y, from_red_to_white(p1));
-                }
-                isInside = 0;
-                break;
-            }
-            //вычисление квадрата комплексного числа
-            //(a+bi)^2 = a^2 - b^2 + 2abi
-            //действительная часть a^2 - b^2
-            //мнимая 2abi
-            //ко всему этому прибавляем первоначально значение
-            Z_im = 2*Z_re*Z_im + c_im;
-            Z_re = Z_re2 - Z_im2 + c_re;
-        }
-        if(isInside) { putpixel(&data, x, y, 255 << 8); }
-        
+//        for(unsigned n=0; n<MaxIterations; ++n)
+//        {
+//            //Находим абсолютеное значение Z и возводим в квадрат чтобы избавиться от корня
+//            double Z_re2 = Z_re*Z_re, Z_im2 = Z_im*Z_im;
+//            if(Z_re2 + Z_im2 > 4)
+//            {
+//                if (n < MaxIterations/2) {
+//                    float p = (float)n / (MaxIterations/2);
+//                    putpixel(&data, x, y, from_black_to_red(p));
+//                } else {
+//                    float p1 = (float)n / MaxIterations;
+//                    putpixel(&data, x, y, from_red_to_white(p1));
+//                }
+//                isInside = 0;
+//                break;
+//            }
+//            //вычисление квадрата комплексного числа
+//            //(a+bi)^2 = a^2 - b^2 + 2abi
+//            //действительная часть a^2 - b^2
+//            //мнимая 2abi
+//            //ко всему этому прибавляем первоначально значение
+//            Z_im = 2*Z_re*Z_im + c_im;
+//            Z_re = Z_re2 - Z_im2 + c_re;
+//        }
+//        if(isInside) { putpixel(&data, x, y, 255 << 8); }
+		int n = is_in_mondelbrot_set(c_re, c_im, MaxIterations);
+		if (n == -1) {
+			putpixel(&data, x, y, 255 << 8);
+		} else {
+			if (n < MaxIterations/2) {
+				float p = (float)n / (MaxIterations/2);
+				putpixel(&data, x, y, from_black_to_red(p));
+				} else {
+				float p1 = (float)n / MaxIterations;
+				putpixel(&data, x, y, from_red_to_white(p1));
+				}
+		}
+		
+		
     }
 }
 
 
-void multiThread(void * fr) {
-    static int num = 0;
-    int step = (WIN_WIDTH * WIN_HEIGHT)/ THREADS_NUM;
-    t_fract* fract = (t_fract*)fr;
-    if (num == THREADS_NUM){
-        num = 0;
-    }
-    mondelNew(fract, step, num++);
-    
+
+
+void multiThread(void *fr) {
+
+//    static int num = 0;
+   int step = (WIN_WIDTH * WIN_HEIGHT)/ THREADS_NUM;
+//    t_fract* fract = (t_fract*)fr;
+//    if (num == THREADS_NUM){
+//        num = 0;
+//    }
+//    mondelNew(fract, step, num++);
+	
+	t_thread *n = (t_thread*) fr;
+	mondelNew(n->fr, step, n->i);
+	printf("NUMBER - %d\n", n->i);
 }
 
 
@@ -119,14 +157,18 @@ void create(t_fract *fract) {
     int    *data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
     ft_bzero(data, WIN_HEIGHT*WIN_WIDTH * 4);
     mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
-    
-    
+	
+	
+	
 	pthread_t threads[THREADS_NUM];
 	
 	int i = 0;
     while (i < THREADS_NUM)
     {
-        pthread_create(threads + i, NULL, multiThread, (void *)fract);
+		t_thread *new = (t_thread*)malloc(sizeof(t_thread));
+		new->fr = fract;
+		new->i = i;
+        pthread_create(threads + i, NULL, multiThread, (void *)new);
         i++;
     }
     while (i--)
