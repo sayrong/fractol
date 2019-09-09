@@ -1,36 +1,6 @@
 
+#include "fractol.h"
 
-#include "mlx.h"
-#include <stdlib.h>
-
-#include <stdio.h>
-#include "libft.h"
-#include <pthread.h>
-
-typedef struct s_complex_n {
-    double re;
-    double im;
-}              t_complex_n;
-
-typedef struct s_viewpoint {
-    t_complex_n *min;
-    t_complex_n *max;
-    double moveX;
-    double moveY;
-    double scale;
-}              t_viewpoint;
-
-typedef struct s_fdf {
-    void *mlx;
-    void *win;
-    void *img;
-    t_viewpoint *point;
-    int threadNumber;
-}               t_fdf;
-
-typedef struct s_mondel {
-	double c_im;
-};
 
 
 int from_black_to_red(float percent) {
@@ -46,67 +16,130 @@ int from_red_to_white(double percent) {
 }
 
 void putpixel(int **data, unsigned x, unsigned y, unsigned color) {
-    (*data)[x + y * 800] = color;
+    if (x + y * WIN_WIDTH > WIN_HEIGHT * WIN_WIDTH)
+    {
+        printf("Oversize x %d, y %d\n", x, y);
+        return ;
+    }
+    (*data)[x + y * WIN_WIDTH] = color;
 }
 
 
-void mondel(t_fdf *fract, unsigned startY, unsigned endY, unsigned startX, unsigned endX);
+//void mondel(t_fdf *fract, unsigned startY, unsigned endY, unsigned startX, unsigned endX);
+//
+//
+//void multiThread(void * fr) {
+//    static int a = 0;
+//    t_fdf* fract = (t_fdf*)fr;
+//    if (a == 0) {
+//        mondel(fract, 0, 800/2, 0, 800/2);
+//    }
+//    if (a == 1) {
+//        mondel(fract, 0, 800/2, 800/2, 800);
+//    }
+//    if (a == 2) {
+//        mondel(fract, 800/2, 800, 0, 800/2);
+//    }
+//    if (a == 3) {
+//        mondel(fract, 800/2, 800, 800/2, 800);
+//    }
+//    a++;
+//    if (a == 4) {
+//        a = 0;
+//    }
+//}
+
+void mondelNew(t_fract *fract, int step, int num) {
+    double Re_factor = (fract->point->max->re - fract->point->min->re)/(WIN_WIDTH-1) * fract->point->scale;
+    double Im_factor = (fract->point->max->im - fract->point->min->im)/(WIN_HEIGHT-1) * fract->point->scale;
+    unsigned MaxIterations = 2500;
+    
+    int    *data = (int *)mlx_get_data_addr(fract->img, &fract->bpp, &fract->size_l, &fract->endian);
+    
+    int start = step * num;
+    printf("start - %d\n", start);
+    int end = start + step;
+    printf("end - %d\n", end);
+    
+    while (start++ < end) {
+        int y = start / WIN_WIDTH;
+        int x = start % WIN_HEIGHT;
+        double c_im = fract->point->max->im - fract->point->moveY - y*Im_factor;
+        double c_re = fract->point->min->re + fract->point->moveX + x*Re_factor;
+        
+        double Z_re = c_re, Z_im = c_im;
+        int isInside = 1;
+        for(unsigned n=0; n<MaxIterations; ++n)
+        {
+            //Находим абсолютеное значение Z и возводим в квадрат чтобы избавиться от корня
+            double Z_re2 = Z_re*Z_re, Z_im2 = Z_im*Z_im;
+            if(Z_re2 + Z_im2 > 4)
+            {
+                if (n < MaxIterations/2) {
+                    float p = (float)n / (MaxIterations/2);
+                    putpixel(&data, x, y, from_black_to_red(p));
+                } else {
+                    float p1 = (float)n / MaxIterations;
+                    putpixel(&data, x, y, from_red_to_white(p1));
+                }
+                isInside = 0;
+                break;
+            }
+            //вычисление квадрата комплексного числа
+            //(a+bi)^2 = a^2 - b^2 + 2abi
+            //действительная часть a^2 - b^2
+            //мнимая 2abi
+            //ко всему этому прибавляем первоначально значение
+            Z_im = 2*Z_re*Z_im + c_im;
+            Z_re = Z_re2 - Z_im2 + c_re;
+        }
+        if(isInside) { putpixel(&data, x, y, 255 << 8); }
+        
+    }
+}
 
 
 void multiThread(void * fr) {
-    static int a = 0;
-    t_fdf* fract = (t_fdf*)fr;
-    if (a == 0) {
-        mondel(fract, 0, 800/2, 0, 800/2);
+    static int num = 0;
+    int step = (WIN_WIDTH * WIN_HEIGHT)/ THREADS_NUM;
+    t_fract* fract = (t_fract*)fr;
+    if (num == THREADS_NUM){
+        num = 0;
     }
-    if (a == 1) {
-        mondel(fract, 0, 800/2, 800/2, 800);
-    }
-    if (a == 2) {
-        mondel(fract, 800/2, 800, 0, 800/2);
-    }
-    if (a == 3) {
-        mondel(fract, 800/2, 800, 800/2, 800);
-    }
-    a++;
-    if (a == 4) {
-        a = 0;
-    }
+    mondelNew(fract, step, num++);
+    
 }
 
 
-
-
-void create(t_fdf *fract) {
+void create(t_fract *fract) {
     
     int    bpp;
     int    size_l;
     int    endian;
     int    *data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
-    ft_bzero(data, 800*800 * 4);
+    ft_bzero(data, WIN_HEIGHT*WIN_WIDTH * 4);
     mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
     
     
-	pthread_t threads[4];
+	pthread_t threads[THREADS_NUM];
 	
 	int i = 0;
-	for (i = 0; i < 4; i++) {
+    while (i < THREADS_NUM)
+    {
         pthread_create(threads + i, NULL, multiThread, (void *)fract);
-//      pthread_join(threads[i], NULL);
-//        mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
-	}
-    for (int j = 0; j < 4; j++) {
-        pthread_join(threads[j], NULL);
+        i++;
     }
-    
-    
+    while (i--)
+    {
+       pthread_join(threads[i], NULL);
+    }
     mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
 }
 
 
 
 
-void mondel(t_fdf *fract, unsigned startY, unsigned endY, unsigned startX, unsigned endX) {
+void mondel(t_fract *fract, unsigned startY, unsigned endY, unsigned startX, unsigned endX) {
 
     double ImageHeight = 800;
     double ImageWidth = 800;
@@ -205,7 +238,7 @@ void mondel(t_fdf *fract, unsigned startY, unsigned endY, unsigned startX, unsig
 //}
 
 
-void julia(t_fdf *fract, double re, double im) {
+void julia1(t_fract *fract, double re, double im) {
 	double ImageHeight = 800;
 	double ImageWidth = 800;
 	
@@ -229,7 +262,7 @@ void julia(t_fdf *fract, double re, double im) {
 	cRe = re;//-0.7;
 	cIm = im;//0.27015;
 	
-	int MaxIterations = 200;
+	int MaxIterations = 2000;
 	
 	mlx_destroy_image(fract->mlx, fract->img);
 	fract->img = mlx_new_image(fract->mlx, 800, 800);
@@ -284,7 +317,7 @@ void julia(t_fdf *fract, double re, double im) {
 }
 
 
-void scale(t_fdf *fract, double scale, int x, int y) {
+void scale(t_fract *fract, double scale, int x, int y) {
     double width;
     double height;
     double newWidth;
@@ -298,14 +331,14 @@ void scale(t_fdf *fract, double scale, int x, int y) {
     newWidth = (fract->point->max->re - fract->point->min->re) * fract->point->scale;
     newHeight = (fract->point->max->im - fract->point->min->im) * fract->point->scale;
     
-    fract->point->moveX += ((double)x / 800) * (width - newWidth);
-    fract->point->moveY += ((double)y / 800) * (height - newHeight);
+    fract->point->moveX += ((double)x / WIN_WIDTH) * (width - newWidth);
+    fract->point->moveY += ((double)y / WIN_HEIGHT) * (height - newHeight);
 }
 
 int mouse_move(int x, int y, void *param) {
     printf("Move (%d, %d)\n", x, y);
 	
-	t_fdf *fract = (t_fdf *)param;
+	t_fract *fract = (t_fract *)param;
 	
 	//Минимальная действительная часть
 	double MinRe = -2.0;
@@ -331,7 +364,7 @@ int mouse_move(int x, int y, void *param) {
 }
 
 int mouse_hook(int button, int x, int y, void *param) {
-    t_fdf *fract = (t_fdf *)param;
+    t_fract *fract = (t_fract *)param;
     printf("Button %d (%d, %d)\n", button, x, y);
     //scroll up
     if (button == 5) {
@@ -376,7 +409,7 @@ int mouse_hook(int button, int x, int y, void *param) {
 }
 
 
-void ship(t_fdf *fract) {
+void ship(t_fract *fract) {
 	double ImageHeight = 800;
 	double ImageWidth = 800;
 	
@@ -453,16 +486,102 @@ void ship(t_fdf *fract) {
 	
 }
 
+void setup_modelbrot(t_fract* fract) {
+    fract->point->max->im = 1;
+    fract->point->max->re = 1;
+    fract->point->min->im = -1;
+    fract->point->min->re = -2;
+}
 
-//
-//int main(int argc, char **argv) {
-//
-//}
 
-
-int main(int ac, char **av)
+int setup_mlx(t_fract* fract)
 {
-    t_fdf fract;
+    fract->mlx = mlx_init();
+    fract->win = mlx_new_window(fract->mlx, WIN_WIDTH, WIN_HEIGHT, "fractol");
+    fract->img = mlx_new_image(fract->mlx, WIN_WIDTH, WIN_HEIGHT);
+    fract->data = (int *)mlx_get_data_addr(fract->img, &fract->bpp, &fract->size_l, &fract->endian);
+    if (fract->mlx == NULL || fract->win == NULL || fract->img == NULL || fract->data == NULL)
+        return (1);
+    return (0);
+}
+
+int select_fractal(t_fract *fract, char *name)
+{
+    if (!ft_strcmp(name, "mandelbrot"))
+    {
+        fract->ftype = mandelbrot;
+        setup_modelbrot(fract);
+    }
+    else if (!ft_strcmp(name, "julia"))
+    {
+        fract->ftype = julia;
+    }
+    else if (!ft_strcmp(name, "burningship"))
+    {
+        fract->ftype = burningship;
+    } else {
+        return (1);
+    }
+    return (0);
+}
+
+void init_fract(t_fract **fract) {
+    t_fract new;
+    t_viewpoint point;
+    t_complex_n defMax;
+    t_complex_n defMin;
+    
+    new.point = &point;
+    point.max = &defMax;
+    point.min = &defMin;
+    point.moveX = 0;
+    point.moveY = 0;
+    point.scale = 1;
+    *fract = &new;
+}
+
+int main(int argc, char **argv) {
+    t_fract *fract;
+    
+    t_fract new;
+    t_viewpoint point;
+    t_complex_n defMax;
+    t_complex_n defMin;
+    
+    new.point = &point;
+    point.max = &defMax;
+    point.min = &defMin;
+    point.moveX = 0;
+    point.moveY = 0;
+    point.scale = 1;
+    fract = &new;
+    
+    if (argc != 2)
+    {
+        ft_putendl("usage: fractol \"name of fractol\" [mandelbrot,julia,burningship]");
+        return (1);
+    }
+    //init_fract(&fract);
+    if (select_fractal(fract, argv[1]))
+    {
+        ft_putendl("Wrong fractol name. Use [mandelbrot,julia,burningship]");
+        return (1);
+    }
+    if (setup_mlx(fract))
+    {
+        ft_putendl("Error init mlx");
+        return (1);
+    }
+    create(fract);
+    mlx_hook(fract->win, 4, 0L, mouse_hook, fract);
+    mlx_loop(fract->mlx);
+    return (0);
+}
+
+
+int main1(int ac, char **av)
+{
+    t_fract fract;
     
     t_viewpoint point;
     t_complex_n defMax;
