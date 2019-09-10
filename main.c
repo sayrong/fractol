@@ -48,25 +48,130 @@ void putpixel(int **data, unsigned x, unsigned y, unsigned color) {
 //    }
 //}
 
-int is_in_mondelbrot_set(double c_re, double c_im, int iterations) {
+int is_in_set1(double c_re, double c_im, int iterations) {
 	int i;
 	double c_im_tmp;
 	double Z_re;
 	double Z_im;
-
+	
 	i = 0;
 	Z_re = c_re;
 	Z_im = c_im;
 	while ((i < iterations) && ((Z_re * Z_re + Z_im * Z_im) < 4)) {
 		c_im_tmp = Z_im;
-		Z_im = -fabs(2 * Z_re * Z_im + c_im);
-		Z_re = fabs(Z_re * Z_re - c_im_tmp * c_im_tmp + c_re);
+		Z_im = 2 * Z_re * Z_im + c_im;
+		Z_re = Z_re * Z_re - c_im_tmp * c_im_tmp + c_re;
 		i++;
 	}
 	if (i == iterations)
 		return (-1);
 	return (i);
 }
+
+typedef struct {
+	int x;
+	int y;
+	double re_factor;
+	double im_factor;
+	double c_re;
+	double c_im;
+	double j_re;
+	double j_im;
+	int iterations;
+	e_ftype ftype;
+	int *pixels;
+} calc_fract_data;
+
+void define_fract(calc_fract_data *fdata, double *Z_re, double *Z_im) {
+	if (fdata->ftype == mandelbrot)
+	{
+		*Z_re += fdata->c_re;
+		*Z_im += fdata->c_im;
+	}
+	else if (fdata->ftype == julia)
+	{
+		*Z_re += fdata->j_re;
+		*Z_im += fdata->j_im;
+	}
+	else if (fdata->ftype == burningship)
+	{
+		*Z_re = fabs(*Z_re) + fdata->c_re;
+		*Z_im = -fabs(*Z_im) + fdata->c_im;
+	}
+}
+
+int is_in_set(calc_fract_data *fdata) {
+	int i;
+	double c_im_tmp;
+	double Z_re;
+	double Z_im;
+	
+	i = 0;
+	Z_re = fdata->c_re;
+	Z_im = fdata->c_im;
+	while ((i < fdata->iterations) && ((Z_re * Z_re + Z_im * Z_im) < 4)) {
+		c_im_tmp = Z_im;
+		Z_im = 2 * Z_re * Z_im;
+		Z_re = Z_re * Z_re - c_im_tmp * c_im_tmp;
+		define_fract(fdata, &Z_re, &Z_im);
+		i++;
+	}
+	if (i == fdata->iterations)
+		return (-1);
+	return (i);
+}
+
+
+
+void set_im_re(int start, calc_fract_data *fdata, t_fract *fract)
+{
+	fdata->y = start / WIN_WIDTH;
+	fdata->x = start % WIN_HEIGHT;
+	fdata->c_im = fract->point->max->im - fract->point->moveY - fdata->y * fdata->im_factor;
+	fdata->c_re = fract->point->min->re + fract->point->moveX + fdata->x * fdata->re_factor;
+}
+
+void initialize(t_fract *fract, calc_fract_data *fdata)
+{
+	fdata->re_factor = (fract->point->max->re - fract->point->min->re)/(WIN_WIDTH-1) * fract->point->scale;
+	fdata->im_factor = (fract->point->max->im - fract->point->min->im)/(WIN_HEIGHT-1) * fract->point->scale;
+	fdata->iterations = fract->iterations;
+	fdata->pixels = fract->data;
+}
+
+void color_pixel(calc_fract_data *fdata, int n) {
+	if (n < fdata->iterations/2)
+	{
+		float p = (float)n / (fdata->iterations/2);
+		putpixel(&fdata->pixels, fdata->x, fdata->y, from_black_to_red(p));
+	}
+	else if (n > 0)
+	{
+		float p = (float)n / (fdata->iterations);
+		putpixel(&fdata->pixels, fdata->x, fdata->y, from_red_to_white(p));
+	}
+	else
+	{
+		putpixel(&fdata->pixels, fdata->x, fdata->y, 255 << 8);
+	}
+}
+
+void calculate(t_fract *fract, int step, int num) {
+	int start_point;
+	int end_point;
+	calc_fract_data fdata;
+	int finish_iteration;
+	
+	initialize(fract, &fdata);
+	start_point = step * num;
+	end_point = start_point + step;
+	while (start_point++ < end_point) {
+		set_im_re(start_point, &fdata, fract);
+		finish_iteration = is_in_set(&fdata);
+		color_pixel(&fdata, finish_iteration);
+	}
+}
+
 
 void mondelNew(t_fract *fract, int step, int num) {
     double Re_factor = (fract->point->max->re - fract->point->min->re)/(WIN_WIDTH-1) * fract->point->scale;
@@ -85,8 +190,7 @@ void mondelNew(t_fract *fract, int step, int num) {
         int x = start % WIN_HEIGHT;
         double c_im = fract->point->max->im - fract->point->moveY - y*Im_factor;
         double c_re = fract->point->min->re + fract->point->moveX + x*Re_factor;
-        
-        double Z_re = c_re, Z_im = c_im;
+		
         int isInside = 1;
 //        for(unsigned n=0; n<MaxIterations; ++n)
 //        {
@@ -113,7 +217,7 @@ void mondelNew(t_fract *fract, int step, int num) {
 //            Z_re = Z_re2 - Z_im2 + c_re;
 //        }
 //        if(isInside) { putpixel(&data, x, y, 255 << 8); }
-		int n = is_in_mondelbrot_set(c_re, c_im, MaxIterations);
+		int n = 1;//is_in_mondelbrot_set(c_re, c_im, MaxIterations);
 		if (n == -1) {
 			putpixel(&data, x, y, 255 << 8);
 		} else {
@@ -144,24 +248,16 @@ void multiThread(void *fr) {
 //    mondelNew(fract, step, num++);
 	
 	t_thread *n = (t_thread*) fr;
-	mondelNew(n->fr, step, n->i);
+	//mondelNew(n->fr, step, n->i);
+	calculate(n->fr, step, n->i);
 	printf("NUMBER - %d\n", n->i);
 }
 
 
 void create(t_fract *fract) {
-    
-    int    bpp;
-    int    size_l;
-    int    endian;
-    int    *data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
-    ft_bzero(data, WIN_HEIGHT*WIN_WIDTH * 4);
-    mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
+    pthread_t threads[THREADS_NUM];
 	
-	
-	
-	pthread_t threads[THREADS_NUM];
-	
+	mlx_clear_window(fract->mlx, fract->win);
 	int i = 0;
     while (i < THREADS_NUM)
     {
@@ -425,24 +521,26 @@ int mouse_hook(int button, int x, int y, void *param) {
 	
 	if (button == 1) {
 		
-		int	bpp;
-		int	size_l;
-		int	endian;
-		int	*data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
-		ft_bzero(data, 800*800 * 3);
-		char *aa = (char*)data;
-		int size = 800 * 800;
-//		while (size--) {
-//			aa[size] = 0;
-//		}
+//		int	bpp;
+//		int	size_l;
+//		int	endian;
+//		int	*data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
+//		ft_bzero(data, 800*800 * 3);
+//		char *aa = (char*)data;
+//		int size = 800 * 800;
+////		while (size--) {
+////			aa[size] = 0;
+////		}
+//
+////		while (size--) {
+////			data[size] = 0;
+////		}
+//
+//
+//		//putpixel(&data, 200, 200, 255 << 8);
+//		mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
 		
-//		while (size--) {
-//			data[size] = 0;
-//		}
-
 		
-		//putpixel(&data, 200, 200, 255 << 8);
-		mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
 	}
     
 	
@@ -564,6 +662,7 @@ int select_fractal(t_fract *fract, char *name)
     } else {
         return (1);
     }
+	fract->iterations = 50;
     return (0);
 }
 
