@@ -50,6 +50,7 @@ typedef struct s_fract {
 	t_viewpoint *point;
 	int threadNumber;
 	e_ftype ftype;
+	unsigned int iterations;
 }               t_fract;
 
 typedef struct s_mondel {
