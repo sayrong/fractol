@@ -5,10 +5,17 @@
 void menu_init(t_fract *fract)
 {
     char *iter_label = "Iterations ";
-    char *num = ft_itoa(fract->iterations);
-    iter_label = ft_strjoin(iter_label, num);
+    char *inum = ft_itoa(fract->iterations);
+    iter_label = ft_strjoin(iter_label, inum);
     mlx_string_put(fract->mlx, fract->win, 10, 10, \
                    0xFFFFFF, iter_label);
+	char *zoom_label = "Zoom ";
+	char *znum = ft_itoa((int) (1/fract->point->scale * 100));
+	printf("%f\n",fract->point->scale);
+	zoom_label = ft_strjoin(zoom_label, znum);
+	mlx_string_put(fract->mlx, fract->win, 10, 25, \
+				   0xFFFFFF, zoom_label);
+	
 }
 
 
@@ -576,33 +583,67 @@ int mouse_move(int x, int y, void *param) {
     return 1;
 }
 
+#define K_MINUS 27
+#define K_PLUS 24
+#define K_Q 12
+#define K_A 0
+#define K_Z 6
+#define K_X 7
+
+#define K_UP 126
+#define K_DOWN 125
+#define K_LEFT 123
+#define K_RIGHT 124
+#define K_1 18
+#define K_2 19
+#define K_3 20
+
+void move_fr(int button, t_fract *fract)
+{
+	double moveX;
+	double moveY;
+	
+	moveX = (fract->point->max->re - fract->point->min->re) * fract->point->scale * 0.1;
+	moveY = (fract->point->max->im - fract->point->min->im) * fract->point->scale * 0.1;
+	if (button == K_UP)
+		fract->point->moveY -= moveY;
+	else if (button == K_DOWN)
+		fract->point->moveY += moveY;
+	else if (button == K_LEFT)
+		fract->point->moveX -= moveX;
+	else if (button == K_RIGHT)
+		fract->point->moveX += moveX;
+}
+
 int key_press(int button, void *param)
 {
     t_fract *fract = (t_fract *)param;
     printf("Button %d\n", button);
     
-    if (button == 27)
+	if (button >= 123 && button <= 126) {
+		move_fr(button,fract);
+	} else if (button == K_MINUS)
         fract->iterations -= 1;
-    else if (button == 24)
+    else if (button == K_PLUS)
         fract->iterations += 1;
-    else if (button == 12)
+    else if (button == K_Q)
     {
         fract->point->scale = 1;
         fract->point->moveX = 0;
         fract->point->moveY = 0;
         fract->iterations = 50;
-    } else if (button == 126) {
+    } else if (button == K_UP) {
         fract->color *= 1.1;
-    } else if (button == 125)
+    } else if (button == K_DOWN)
     {
         fract->color = abs(fract->color / 1.1);
-    } else if (button == 18)
+    } else if (button == K_1)
         fract->ftype = mandelbrot;
-    else if (button == 19)
+    else if (button == K_2)
         fract->ftype = julia;
-    else if (button == 20)
+	else if (button == K_3)
         fract->ftype = burningship;
-    else if (button == 0)
+    else if (button == K_A)
     {
         fract->point->max->im = 2;
         fract->point->max->re = 2;
