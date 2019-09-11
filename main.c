@@ -2,6 +2,56 @@
 #include "fractol.h"
 
 
+void menu_init(t_fract *fract)
+{
+    char *iter_label = "Iterations ";
+    char *num = ft_itoa(fract->iterations);
+    iter_label = ft_strjoin(iter_label, num);
+    mlx_string_put(fract->mlx, fract->win, 10, 10, \
+                   0xFFFFFF, iter_label);
+}
+
+
+int from_blue_to_cyan(double percent)
+{
+    int green;
+    int blue;
+    
+    green = 255 * percent;
+    blue = 255;
+    return ((green << 8) | (blue));
+}
+
+int from_cyan_to_green(double percent)
+{
+    int green;
+    int blue;
+    
+    green = 255;
+    blue = 255 * percent;
+    return ((green << 8) | (blue));
+}
+
+int from_green_to_yellow(double percent)
+{
+    int red;
+    int green;
+    
+    green = 255;
+    red = 255 * percent;
+    return (red << 16 | green << 8);
+}
+
+int from_yellow_to_red(double percent)
+{
+    int red;
+    int green;
+    
+    green = 255 * percent;
+    red = 255;
+    return (red << 16 | green << 8);
+}
+
 int from_black_to_red(float percent) {
     int red = 255 * percent;
     return red << 16;
@@ -95,8 +145,8 @@ void define_fract(calc_fract_data *fdata, double *Z_re, double *Z_im) {
 	}
 	else if (fdata->ftype == burningship)
 	{
-		*Z_re = fabs(*Z_re) + fdata->c_re;
-		*Z_im = -fabs(*Z_im) + fdata->c_im;
+		*Z_re = fabs(*Z_re + fdata->c_re);
+		*Z_im = -fabs(*Z_im + fdata->c_im);
 	}
 }
 
@@ -137,23 +187,35 @@ void initialize(t_fract *fract, calc_fract_data *fdata)
 	fdata->im_factor = (fract->point->max->im - fract->point->min->im)/(WIN_HEIGHT-1) * fract->point->scale;
 	fdata->iterations = fract->iterations;
 	fdata->pixels = fract->data;
+    fdata->j_im = fract->j_im;
+    fdata->j_re = fract->j_re;
+    fdata->ftype = fract->ftype;
 }
 
 void color_pixel(calc_fract_data *fdata, int n) {
-	if (n < fdata->iterations/2)
-	{
-		float p = (float)n / (fdata->iterations/2);
-		putpixel(&fdata->pixels, fdata->x, fdata->y, from_black_to_red(p));
-	}
-	else if (n > 0)
-	{
-		float p = (float)n / (fdata->iterations);
-		putpixel(&fdata->pixels, fdata->x, fdata->y, from_red_to_white(p));
-	}
-	else
-	{
-		putpixel(&fdata->pixels, fdata->x, fdata->y, 255 << 8);
-	}
+
+    
+    
+    int part;
+    
+    if (n == -1)
+    {
+        putpixel(&fdata->pixels, fdata->x, fdata->y, 0);
+    }
+    
+    part = fdata->iterations / 5;
+    if (n < 0)
+        return ;
+    if (n < part)
+        putpixel(&fdata->pixels, fdata->x, fdata->y, from_blue_to_cyan((double)n/part));
+    else if (n < 2 * part)
+        putpixel(&fdata->pixels, fdata->x, fdata->y, from_cyan_to_green((double)n/part*2));
+    else if (n < (3 * part))
+        putpixel(&fdata->pixels, fdata->x, fdata->y, from_blue_to_cyan((double)n/part*3));
+    else if (n < (4 * part))
+        putpixel(&fdata->pixels, fdata->x, fdata->y, from_yellow_to_red((double)n/part*4));
+    //else
+        //putpixel(&fdata->pixels, fdata->x, fdata->y, from_red_to_white((double)n/(fdata->iterations)));
 }
 
 void calculate(t_fract *fract, int step, int num) {
@@ -168,7 +230,14 @@ void calculate(t_fract *fract, int step, int num) {
 	while (start_point++ < end_point) {
 		set_im_re(start_point, &fdata, fract);
 		finish_iteration = is_in_set(&fdata);
-		color_pixel(&fdata, finish_iteration);
+		//color_pixel(&fdata, finish_iteration);
+        if (fdata.x < WIN_WIDTH && fdata.y < WIN_WIDTH)
+        {
+
+            //int color = mlx_get_color_value(fract->mlx, finish_iteration + (255 << 16));
+            int color = fract->color * finish_iteration;//(finish_iteration * fract->iterations) | ((fract->iterations % 255) << 14);
+            putpixel(&fdata.pixels, fdata.x, fdata.y, color);
+        }
 	}
 }
 
@@ -255,8 +324,8 @@ void multiThread(void *fr) {
 
 
 void create(t_fract *fract) {
+    
     pthread_t threads[THREADS_NUM];
-	
 	mlx_clear_window(fract->mlx, fract->win);
 	int i = 0;
     while (i < THREADS_NUM)
@@ -272,6 +341,7 @@ void create(t_fract *fract) {
        pthread_join(threads[i], NULL);
     }
     mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
+    menu_init(fract);
 }
 
 
@@ -488,17 +558,59 @@ int mouse_move(int x, int y, void *param) {
 	//Предствим максимальную мнимую часть через отношение
 	double MaxIm = 1.2;
 	
-	double Re_factor = (MaxRe-MinRe)/(800-1);
-	double Im_factor = (MaxIm-MinIm)/(800-1);
+	double Re_factor = (MaxRe-MinRe)/(WIN_WIDTH-1);
+	double Im_factor = (MaxIm-MinIm)/(WIN_HEIGHT-1);
 	
 	
 	double c_im = MaxIm - y*Im_factor;
 	double c_re = MinRe + x*Re_factor;
 	
-	
+	if (fract->ftype == julia)
+    {
+        fract->j_im = c_im;
+        fract->j_re = c_re;
+        create(fract);
+    }
 //	julia(fract, c_re, c_im);
 	
     return 1;
+}
+
+int key_press(int button, void *param)
+{
+    t_fract *fract = (t_fract *)param;
+    printf("Button %d\n", button);
+    
+    if (button == 27)
+        fract->iterations -= 1;
+    else if (button == 24)
+        fract->iterations += 1;
+    else if (button == 12)
+    {
+        fract->point->scale = 1;
+        fract->point->moveX = 0;
+        fract->point->moveY = 0;
+        fract->iterations = 50;
+    } else if (button == 126) {
+        fract->color *= 1.1;
+    } else if (button == 125)
+    {
+        fract->color = abs(fract->color / 1.1);
+    } else if (button == 18)
+        fract->ftype = mandelbrot;
+    else if (button == 19)
+        fract->ftype = julia;
+    else if (button == 20)
+        fract->ftype = burningship;
+    else if (button == 0)
+    {
+        fract->point->max->im = 2;
+        fract->point->max->re = 2;
+        fract->point->min->im = -2;
+        fract->point->min->re = -2;
+    }
+    create(fract);
+    return 0;
 }
 
 int mouse_hook(int button, int x, int y, void *param) {
@@ -507,14 +619,14 @@ int mouse_hook(int button, int x, int y, void *param) {
     //scroll up
     if (button == 5) {
         
-        scale(fract, 0.5, x, y);
-        
+        scale(fract, 0.9, x, y);
+        fract->iterations += 50;
     }
     //scroll down
     if (button == 4) {
         
         scale(fract, 1.1, x, y);
-        
+        fract->iterations -= 50;
     }
 	
 	create(fract);
@@ -662,7 +774,8 @@ int select_fractal(t_fract *fract, char *name)
     } else {
         return (1);
     }
-	fract->iterations = 50;
+    fract->iterations = 50;
+    fract->color = 252;
     return (0);
 }
 
@@ -714,7 +827,9 @@ int main(int argc, char **argv) {
         return (1);
     }
     create(fract);
+    mlx_hook(fract->win, 6, 0L, mouse_move, fract);
     mlx_hook(fract->win, 4, 0L, mouse_hook, fract);
+    mlx_hook(fract->win, 2, 5, key_press, fract);
     mlx_loop(fract->mlx);
     return (0);
 }
