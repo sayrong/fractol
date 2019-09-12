@@ -1,21 +1,30 @@
 
 #include "fractol.h"
 
+char *get_iteration(t_fract *fract)
+{
+	char *iter_label;
+	
+	iter_label = "Iterations ";
+	iter_label = ft_strjoin(iter_label, ft_itoa(fract->iterations));
+	return (iter_label);
+}
+
+char *get_zoom(t_fract *fract)
+{
+	char *zoom_label;
+	
+	zoom_label = "Zoom ";
+	zoom_label = ft_strjoin(zoom_label, ft_itoa((int) (1/fract->point->scale * 100)));
+	return (zoom_label);
+}
 
 void menu_init(t_fract *fract)
 {
-    char *iter_label = "Iterations ";
-    char *inum = ft_itoa(fract->iterations);
-    iter_label = ft_strjoin(iter_label, inum);
     mlx_string_put(fract->mlx, fract->win, 10, 10, \
-                   0xFFFFFF, iter_label);
-	char *zoom_label = "Zoom ";
-	char *znum = ft_itoa((int) (1/fract->point->scale * 100));
-	printf("%f\n",fract->point->scale);
-	zoom_label = ft_strjoin(zoom_label, znum);
+				   0xFFFFFF, get_iteration(fract));
 	mlx_string_put(fract->mlx, fract->win, 10, 25, \
-				   0xFFFFFF, zoom_label);
-	
+				   0xFFFFFF, get_zoom(fract));
 }
 
 
@@ -23,7 +32,9 @@ int from_blue_to_cyan(double percent)
 {
     int green;
     int blue;
-    
+	
+	if (percent < 0.3)
+		percent *= 2;
     green = 255 * percent;
     blue = 255;
     return ((green << 8) | (blue));
@@ -225,6 +236,18 @@ void color_pixel(calc_fract_data *fdata, int n) {
         //putpixel(&fdata->pixels, fdata->x, fdata->y, from_red_to_white((double)n/(fdata->iterations)));
 }
 
+void color_dump(t_fract *fract, calc_fract_data *fdata, int fin)
+{
+	int color;
+	
+	color = 0;
+	if (fdata->x < WIN_WIDTH && fdata->y < WIN_WIDTH)
+	{
+		color = fract->color * fin;
+		putpixel(&fdata->pixels, fdata->x, fdata->y, color);
+	}
+}
+
 void calculate(t_fract *fract, int step, int num) {
 	int start_point;
 	int end_point;
@@ -237,14 +260,10 @@ void calculate(t_fract *fract, int step, int num) {
 	while (start_point++ < end_point) {
 		set_im_re(start_point, &fdata, fract);
 		finish_iteration = is_in_set(&fdata);
-		//color_pixel(&fdata, finish_iteration);
-        if (fdata.x < WIN_WIDTH && fdata.y < WIN_WIDTH)
-        {
-
-            //int color = mlx_get_color_value(fract->mlx, finish_iteration + (255 << 16));
-            int color = fract->color * finish_iteration;//(finish_iteration * fract->iterations) | ((fract->iterations % 255) << 14);
-            putpixel(&fdata.pixels, fdata.x, fdata.y, color);
-        }
+		if (fract->use_dump_color == 0)
+			color_pixel(&fdata, finish_iteration);
+		else
+			color_dump(fract, &fdata, finish_iteration);
 	}
 }
 
@@ -572,7 +591,7 @@ int mouse_move(int x, int y, void *param) {
 	double c_im = MaxIm - y*Im_factor;
 	double c_re = MinRe + x*Re_factor;
 	
-	if (fract->ftype == julia)
+	if (fract->ftype == julia && fract->freeze == 0)
     {
         fract->j_im = c_im;
         fract->j_re = c_re;
@@ -586,6 +605,9 @@ int mouse_move(int x, int y, void *param) {
 #define K_MINUS 27
 #define K_PLUS 24
 #define K_Q 12
+#define K_W 13
+#define K_E 14
+
 #define K_A 0
 #define K_Z 6
 #define K_X 7
@@ -597,6 +619,12 @@ int mouse_move(int x, int y, void *param) {
 #define K_1 18
 #define K_2 19
 #define K_3 20
+#define K_SPACE 49
+
+// "Move - Button arrows"
+// "Zoom - mouse wheel or Space"
+// "Select Fractal - 1, 2, 3"
+// "Reset - Q"
 
 void move_fr(int button, t_fract *fract)
 {
@@ -615,41 +643,52 @@ void move_fr(int button, t_fract *fract)
 		fract->point->moveX += moveX;
 }
 
+void reset(t_fract *fract)
+{
+	fract->point->scale = 1;
+	fract->point->moveX = 0;
+	fract->point->moveY = 0;
+	fract->iterations = 50;
+}
+
+void color_change(t_fract *fract)
+{
+	if (fract->color == -2147483648)
+		fract->color = 252;
+	else
+		fract->color *= 1.1;
+}
+
+void change_fract(t_fract *fract, int button)
+{
+	if (button == K_1)
+		fract->ftype = mandelbrot;
+	else if (button == K_2)
+		fract->ftype = julia;
+	else if (button == K_3)
+		fract->ftype = burningship;
+}
+
 int key_press(int button, void *param)
 {
-    t_fract *fract = (t_fract *)param;
+    t_fract *fract;
     printf("Button %d\n", button);
-    
-	if (button >= 123 && button <= 126) {
+	
+	fract = (t_fract *)param;
+	
+	if (button >= K_LEFT && button <= K_UP)
 		move_fr(button,fract);
-	} else if (button == K_MINUS)
-        fract->iterations -= 1;
-    else if (button == K_PLUS)
-        fract->iterations += 1;
+	else if (button == K_MINUS || button == K_PLUS)
+		fract->iterations += button == K_MINUS ? -1 : 1;
     else if (button == K_Q)
-    {
-        fract->point->scale = 1;
-        fract->point->moveX = 0;
-        fract->point->moveY = 0;
-        fract->iterations = 50;
-    } else if (button == K_UP) {
-        fract->color *= 1.1;
-    } else if (button == K_DOWN)
-    {
-        fract->color = abs(fract->color / 1.1);
-    } else if (button == K_1)
-        fract->ftype = mandelbrot;
-    else if (button == K_2)
-        fract->ftype = julia;
-	else if (button == K_3)
-        fract->ftype = burningship;
-    else if (button == K_A)
-    {
-        fract->point->max->im = 2;
-        fract->point->max->re = 2;
-        fract->point->min->im = -2;
-        fract->point->min->re = -2;
-    }
+		reset(fract);
+	else if (button == K_E)
+		color_change(fract);
+	else if (button == K_W)
+		fract->use_dump_color = !fract->use_dump_color;
+    else if (button == K_1 || button == K_2 || button == K_3)
+		change_fract(fract, button);
+	
     create(fract);
     return 0;
 }
@@ -673,27 +712,10 @@ int mouse_hook(int button, int x, int y, void *param) {
 	create(fract);
 	
 	if (button == 1) {
-		
-//		int	bpp;
-//		int	size_l;
-//		int	endian;
-//		int	*data = (int *)mlx_get_data_addr(fract->img, &bpp, &size_l, &endian);
-//		ft_bzero(data, 800*800 * 3);
-//		char *aa = (char*)data;
-//		int size = 800 * 800;
-////		while (size--) {
-////			aa[size] = 0;
-////		}
-//
-////		while (size--) {
-////			data[size] = 0;
-////		}
-//
-//
-//		//putpixel(&data, 200, 200, 255 << 8);
-//		mlx_put_image_to_window(fract->mlx, fract->win, fract->img, 0, 0);
-		
-		
+		if (fract->freeze == 0)
+			fract->freeze = 1;
+		else
+			fract->freeze = 0;
 	}
     
 	
@@ -779,11 +801,15 @@ void ship(t_fract *fract) {
 	
 }
 
-void setup_modelbrot(t_fract* fract) {
-    fract->point->max->im = 1;
-    fract->point->max->re = 1;
-    fract->point->min->im = -1;
-    fract->point->min->re = -2;
+void setup(t_fract* fract) {
+	fract->point->max->im = 3;
+	fract->point->max->re = 3.1;
+	fract->point->min->im = -3;
+	fract->point->min->re = -3;
+	fract->iterations = 50;
+	fract->color = 252;
+	fract->freeze = 0;
+	fract->use_dump_color = 0;
 }
 
 
@@ -803,7 +829,6 @@ int select_fractal(t_fract *fract, char *name)
     if (!ft_strcmp(name, "mandelbrot"))
     {
         fract->ftype = mandelbrot;
-        setup_modelbrot(fract);
     }
     else if (!ft_strcmp(name, "julia"))
     {
@@ -815,8 +840,7 @@ int select_fractal(t_fract *fract, char *name)
     } else {
         return (1);
     }
-    fract->iterations = 50;
-    fract->color = 252;
+	setup(fract);
     return (0);
 }
 
@@ -876,6 +900,8 @@ int main(int argc, char **argv) {
 }
 
 
+
+
 int main1(int ac, char **av)
 {
     t_fract fract;
@@ -884,10 +910,10 @@ int main1(int ac, char **av)
     t_complex_n defMax;
     t_complex_n defMin;
     
-    defMax.re = 1.0;
-    defMax.im = 1.2;
-    defMin.re = -2.0;
-    defMin.im = -1.2;
+    defMax.re = 3;
+    defMax.im = 3;
+    defMin.re = -3;
+    defMin.im = -3;
 	
     point.max = &defMax;
     point.min = &defMin;

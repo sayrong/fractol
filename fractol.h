@@ -54,6 +54,8 @@ typedef struct s_fract {
 	unsigned int iterations;
     double j_im;
     double j_re;
+	int freeze;
+	int use_dump_color;
 }               t_fract;
 
 typedef struct s_mondel {
