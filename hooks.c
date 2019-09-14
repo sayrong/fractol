@@ -17,7 +17,9 @@ int		key_press(int button, void *param)
 	t_fract *fract;
 
 	fract = (t_fract *)param;
-	if (button >= K_LEFT && button <= K_UP)
+	if (button == KB_ESC)
+		finish(fract);
+	else if (button >= K_LEFT && button <= K_UP)
 		move_fr(button, fract);
 	else if (button == K_MINUS || button == K_PLUS)
 		btn_increase_pressed(button, fract);

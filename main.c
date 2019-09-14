@@ -12,6 +12,14 @@
 
 #include "fractol.h"
 
+int		finish(t_fract *fract)
+{
+	mlx_destroy_image(fract->mlx, fract->img);
+	mlx_destroy_window(fract->mlx, fract->win);
+	exit(0);
+	return (0);
+}
+
 int	select_fractal(t_fract *fract, char *name)
 {
 	if (!ft_strcmp(name, "mandelbrot"))

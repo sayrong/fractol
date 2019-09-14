@@ -40,6 +40,7 @@
 # define SCROLL_UP 5
 # define SCROLL_DOWN 4
 # define MOUSE_LEFT 1
+# define KB_ESC 53
 
 typedef enum		e_ftype
 {
@@ -133,5 +134,6 @@ void				menu_init(t_fract *fract);
 char				*get_iteration(t_fract *fract);
 char				*get_zoom(t_fract *fract);
 void				scale(t_fract *fract, double scale, int x, int y);
+int					finish(t_fract *fract);
 
 #endif
