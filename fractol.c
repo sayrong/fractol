@@ -33,7 +33,7 @@ void	create(t_fract *fract)
 	menu_init(fract);
 }
 
-void	multi_thread(void *fr)
+void	*multi_thread(void *fr)
 {
 	int			step;
 	t_thread	*n;
@@ -41,6 +41,7 @@ void	multi_thread(void *fr)
 	step = (WIN_WIDTH * WIN_HEIGHT) / THREADS_NUM;
 	n = (t_thread*)fr;
 	calculate(n->fr, step, n->i);
+	return (0);
 }
 
 void	calculate(t_fract *fract, int step, int num)

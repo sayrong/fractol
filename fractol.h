@@ -15,9 +15,10 @@
 
 # include "mlx.h"
 # include <stdlib.h>
-# include "libft.h"
+# include "./libft/libft.h"
 # include <pthread.h>
 # include <stdio.h>
+# include <math.h>
 
 # define WIN_WIDTH 800
 # define WIN_HEIGHT 800
@@ -104,7 +105,7 @@ int					from_yellow_to_red(double percent);
 void				color_dump(t_fract *fract, t_calc_fract_data *fdata,
 							int fin_iter);
 void				create(t_fract *fract);
-void				multi_thread(void *fr);
+void				*multi_thread(void *fr);
 void				calculate(t_fract *fract, int step, int num);
 int					is_in_set(t_calc_fract_data *fdata);
 void				define_fract(t_calc_fract_data *fdata, double *z_re,
@@ -131,5 +132,6 @@ void				mlx_hooks_setup(t_fract *fract);
 void				menu_init(t_fract *fract);
 char				*get_iteration(t_fract *fract);
 char				*get_zoom(t_fract *fract);
+void				scale(t_fract *fract, double scale, int x, int y);
 
 #endif
