@@ -22,7 +22,7 @@ void	putpixel(int **data, unsigned x, unsigned y, unsigned color)
 	(*data)[x + y * (WIN_WIDTH)] = color;
 }
 
-void	color_pixel(calc_fract_data *fdata, int fin_iter)
+void	color_pixel(t_calc_fract_data *fdata, int fin_iter)
 {
 	int part;
 

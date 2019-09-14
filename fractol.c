@@ -48,7 +48,7 @@ void	calculate(t_fract *fract, int step, int num)
 	int				start_point;
 	int				end_point;
 	int				finish_iteration;
-	calc_fract_data	fdata;
+	t_calc_fract_data	fdata;
 
 	initialize(fract, &fdata);
 	start_point = step * num;
@@ -65,7 +65,7 @@ void	calculate(t_fract *fract, int step, int num)
 	}
 }
 
-int		is_in_set(calc_fract_data *fdata)
+int		is_in_set(t_calc_fract_data *fdata)
 {
 	int		i;
 	double	c_im_tmp;
@@ -88,7 +88,7 @@ int		is_in_set(calc_fract_data *fdata)
 	return (i);
 }
 
-void	define_fract(calc_fract_data *fdata, double *z_re, double *z_im)
+void	define_fract(t_calc_fract_data *fdata, double *z_re, double *z_im)
 {
 	if (fdata->ftype == mandelbrot)
 	{

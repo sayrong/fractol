@@ -12,17 +12,17 @@
 
 #include "fractol.h"
 
-void	set_im_re(int start, calc_fract_data *fdata, t_fract *fract)
+void	set_im_re(int start, t_calc_fract_data *fdata, t_fract *fract)
 {
 	fdata->y = start / (WIN_WIDTH);
 	fdata->x = start % (WIN_HEIGHT);
-	fdata->c_im = fract->point->max->im - fract->point->moveY
+	fdata->c_im = fract->point->max->im - fract->point->move_y
 		- fdata->y * fdata->im_factor;
-	fdata->c_re = fract->point->min->re + fract->point->moveX
+	fdata->c_re = fract->point->min->re + fract->point->move_x
 		+ fdata->x * fdata->re_factor;
 }
 
-void	initialize(t_fract *fract, calc_fract_data *fdata)
+void	initialize(t_fract *fract, t_calc_fract_data *fdata)
 {
 	fdata->re_factor = (fract->point->max->re - fract->point->min->re)
 		/ WIN_WIDTH * fract->point->scale;
@@ -60,6 +60,6 @@ void	scale(t_fract *fract, double scale, int x, int y)
 		* fract->point->scale;
 	new_height = (fract->point->max->im - fract->point->min->im)
 		* fract->point->scale;
-	fract->point->moveX += ((double)x / WIN_WIDTH) * (width - new_width);
-	fract->point->moveY += ((double)y / WIN_HEIGHT) * (height - new_height);
+	fract->point->move_x += ((double)x / WIN_WIDTH) * (width - new_width);
+	fract->point->move_y += ((double)y / WIN_HEIGHT) * (height - new_height);
 }

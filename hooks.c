@@ -93,11 +93,11 @@ void	move_fr(int button, t_fract *fract)
 	move_y = (fract->point->max->im - fract->point->min->im)
 		* fract->point->scale * 0.1;
 	if (button == K_UP)
-		fract->point->moveY -= move_y;
+		fract->point->move_y -= move_y;
 	else if (button == K_DOWN)
-		fract->point->moveY += move_y;
+		fract->point->move_y += move_y;
 	else if (button == K_LEFT)
-		fract->point->moveX -= move_x;
+		fract->point->move_x -= move_x;
 	else if (button == K_RIGHT)
-		fract->point->moveX += move_x;
+		fract->point->move_x += move_x;
 }

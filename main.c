@@ -58,8 +58,8 @@ int	main(int argc, char **argv)
 	fract.point = &point;
 	point.max = &def_max;
 	point.min = &def_min;
-	point.moveX = 0;
-	point.moveY = 0;
+	point.move_x = 0;
+	point.move_y = 0;
 	point.scale = 1;
 	if (basic_chec(argc, argv, &fract))
 		return (1);

@@ -54,7 +54,7 @@ int		from_yellow_to_red(double percent)
 	return (red << 16 | green << 8);
 }
 
-void	color_dump(t_fract *fract, calc_fract_data *fdata, int fin_iter)
+void	color_dump(t_fract *fract, t_calc_fract_data *fdata, int fin_iter)
 {
 	int color;
 

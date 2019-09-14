@@ -26,8 +26,8 @@ void	btn_increase_pressed(int button, t_fract *fract)
 void	reset(t_fract *fract)
 {
 	fract->point->scale = 1;
-	fract->point->moveX = 0;
-	fract->point->moveY = 0;
+	fract->point->move_x = 0;
+	fract->point->move_y = 0;
 	fract->iterations = 50;
 }
 
