@@ -16,8 +16,8 @@
 #include "libft.h"
 #include <pthread.h>
 
-#define WIN_WIDTH 400
-#define WIN_HEIGHT 400
+#define WIN_WIDTH 800
+#define WIN_HEIGHT 800
 #define THREADS_NUM 8
 
 typedef enum {

@@ -83,12 +83,12 @@ int from_red_to_white(double percent) {
 }
 
 void putpixel(int **data, unsigned x, unsigned y, unsigned color) {
-    if (x + y * WIN_WIDTH > WIN_HEIGHT * WIN_WIDTH)
+    if (x + y * (WIN_WIDTH) >= (WIN_HEIGHT) * (WIN_WIDTH))
     {
         printf("Oversize x %d, y %d\n", x, y);
         return ;
     }
-    (*data)[x + y * WIN_WIDTH] = color;
+    (*data)[x + y * (WIN_WIDTH)] = color;
 }
 
 
@@ -193,16 +193,16 @@ int is_in_set(calc_fract_data *fdata) {
 
 void set_im_re(int start, calc_fract_data *fdata, t_fract *fract)
 {
-	fdata->y = start / WIN_WIDTH;
-	fdata->x = start % WIN_HEIGHT;
+	fdata->y = start / (WIN_WIDTH);
+	fdata->x = start % (WIN_HEIGHT);
 	fdata->c_im = fract->point->max->im - fract->point->moveY - fdata->y * fdata->im_factor;
 	fdata->c_re = fract->point->min->re + fract->point->moveX + fdata->x * fdata->re_factor;
 }
 
 void initialize(t_fract *fract, calc_fract_data *fdata)
 {
-	fdata->re_factor = (fract->point->max->re - fract->point->min->re)/(WIN_WIDTH-1) * fract->point->scale;
-	fdata->im_factor = (fract->point->max->im - fract->point->min->im)/(WIN_HEIGHT-1) * fract->point->scale;
+	fdata->re_factor = (fract->point->max->re - fract->point->min->re)/(WIN_WIDTH) * fract->point->scale;
+	fdata->im_factor = (fract->point->max->im - fract->point->min->im)/(WIN_HEIGHT) * fract->point->scale;
 	fdata->iterations = fract->iterations;
 	fdata->pixels = fract->data;
     fdata->j_im = fract->j_im;
@@ -257,13 +257,14 @@ void calculate(t_fract *fract, int step, int num) {
 	initialize(fract, &fdata);
 	start_point = step * num;
 	end_point = start_point + step;
-	while (start_point++ < end_point) {
+	while (start_point < end_point) {
 		set_im_re(start_point, &fdata, fract);
 		finish_iteration = is_in_set(&fdata);
 		if (fract->use_dump_color == 0)
 			color_pixel(&fdata, finish_iteration);
 		else
 			color_dump(fract, &fdata, finish_iteration);
+		start_point++;
 	}
 }
 
@@ -335,7 +336,7 @@ void mondelNew(t_fract *fract, int step, int num) {
 void multiThread(void *fr) {
 
 //    static int num = 0;
-   int step = (WIN_WIDTH * WIN_HEIGHT)/ THREADS_NUM;
+   int step = ((WIN_WIDTH) * (WIN_HEIGHT))/ THREADS_NUM;
 //    t_fract* fract = (t_fract*)fr;
 //    if (num == THREADS_NUM){
 //        num = 0;
@@ -349,10 +350,17 @@ void multiThread(void *fr) {
 }
 
 
+
 void create(t_fract *fract) {
     
     pthread_t threads[THREADS_NUM];
+	
+	//mlx_clear_window(fract->mlx, fract->win);
+	mlx_destroy_image(fract->mlx, fract->img);
+	fract->img = mlx_new_image(fract->mlx, WIN_WIDTH, WIN_HEIGHT);
 	mlx_clear_window(fract->mlx, fract->win);
+	fract->data = (int *)mlx_get_data_addr(fract->img, &fract->bpp, &fract->size_l, &fract->endian);
+	
 	int i = 0;
     while (i < THREADS_NUM)
     {
@@ -565,8 +573,8 @@ void scale(t_fract *fract, double scale, int x, int y) {
     newWidth = (fract->point->max->re - fract->point->min->re) * fract->point->scale;
     newHeight = (fract->point->max->im - fract->point->min->im) * fract->point->scale;
     
-    fract->point->moveX += ((double)x / WIN_WIDTH) * (width - newWidth);
-    fract->point->moveY += ((double)y / WIN_HEIGHT) * (height - newHeight);
+    fract->point->moveX += ((double)x / (WIN_WIDTH )) * (width - newWidth);
+    fract->point->moveY += ((double)y / (WIN_HEIGHT )) * (height - newHeight);
 }
 
 int mouse_move(int x, int y, void *param) {
@@ -584,8 +592,8 @@ int mouse_move(int x, int y, void *param) {
 	//Предствим максимальную мнимую часть через отношение
 	double MaxIm = 1.2;
 	
-	double Re_factor = (MaxRe-MinRe)/(WIN_WIDTH-1);
-	double Im_factor = (MaxIm-MinIm)/(WIN_HEIGHT-1);
+	double Re_factor = (MaxRe-MinRe)/(WIN_WIDTH);
+	double Im_factor = (MaxIm-MinIm)/(WIN_HEIGHT);
 	
 	
 	double c_im = MaxIm - y*Im_factor;
@@ -669,6 +677,24 @@ void change_fract(t_fract *fract, int button)
 		fract->ftype = burningship;
 }
 
+
+int iter_increase() {
+	if (WIN_WIDTH < 400)
+		return (50);
+	return (10);
+}
+
+void btn_increase_pressed(int button, t_fract *fract)
+{
+	if (button == K_MINUS)
+	{
+		if (fract->iterations - iter_increase() > 1)
+			fract->iterations -= iter_increase();
+	}
+	else
+		fract->iterations += iter_increase();
+}
+
 int key_press(int button, void *param)
 {
     t_fract *fract;
@@ -679,7 +705,7 @@ int key_press(int button, void *param)
 	if (button >= K_LEFT && button <= K_UP)
 		move_fr(button,fract);
 	else if (button == K_MINUS || button == K_PLUS)
-		fract->iterations += button == K_MINUS ? -1 : 1;
+		btn_increase_pressed(button, fract);
     else if (button == K_Q)
 		reset(fract);
 	else if (button == K_E)
@@ -688,25 +714,40 @@ int key_press(int button, void *param)
 		fract->use_dump_color = !fract->use_dump_color;
     else if (button == K_1 || button == K_2 || button == K_3)
 		change_fract(fract, button);
+	else if (button == K_SPACE)
+		scale(fract, 0.9, WIN_WIDTH/2, WIN_HEIGHT/2);
+	else if (button == K_Z)
+		scale(fract, 1.1, WIN_WIDTH/2, WIN_HEIGHT/2);
 	
     create(fract);
     return 0;
 }
 
+void check_zoom_iter(t_fract *fract)
+{
+	if (fract->iterations <= 0)
+		fract->iterations = 50;
+	if (fract->point->scale <= 0)
+		fract->point->scale = 100;
+}
+
+
+
 int mouse_hook(int button, int x, int y, void *param) {
     t_fract *fract = (t_fract *)param;
     printf("Button %d (%d, %d)\n", button, x, y);
+	
     //scroll up
     if (button == 5) {
-        
         scale(fract, 0.9, x, y);
-        fract->iterations += 50;
+		if (fract->point->scale < 0.9)
+        	fract->iterations += iter_increase();
     }
     //scroll down
     if (button == 4) {
-        
         scale(fract, 1.1, x, y);
-        fract->iterations -= 50;
+		if (fract->iterations > 50)
+        	fract->iterations -= iter_increase();
     }
 	
 	create(fract);
@@ -859,91 +900,53 @@ void init_fract(t_fract **fract) {
     *fract = &new;
 }
 
-int main(int argc, char **argv) {
-    t_fract *fract;
-    
-    t_fract new;
-    t_viewpoint point;
-    t_complex_n defMax;
-    t_complex_n defMin;
-    
-    new.point = &point;
-    point.max = &defMax;
-    point.min = &defMin;
-    point.moveX = 0;
-    point.moveY = 0;
-    point.scale = 1;
-    fract = &new;
-    
-    if (argc != 2)
-    {
-        ft_putendl("usage: fractol \"name of fractol\" [mandelbrot,julia,burningship]");
-        return (1);
-    }
-    //init_fract(&fract);
-    if (select_fractal(fract, argv[1]))
-    {
-        ft_putendl("Wrong fractol name. Use [mandelbrot,julia,burningship]");
-        return (1);
-    }
-    if (setup_mlx(fract))
-    {
-        ft_putendl("Error init mlx");
-        return (1);
-    }
-    create(fract);
-    mlx_hook(fract->win, 6, 0L, mouse_move, fract);
-    mlx_hook(fract->win, 4, 0L, mouse_hook, fract);
-    mlx_hook(fract->win, 2, 5, key_press, fract);
-    mlx_loop(fract->mlx);
-    return (0);
-}
-
-
-
-
-int main1(int ac, char **av)
+void mlx_hooks_setup(t_fract *fract)
 {
-    t_fract fract;
-    
-    t_viewpoint point;
-    t_complex_n defMax;
-    t_complex_n defMin;
-    
-    defMax.re = 3;
-    defMax.im = 3;
-    defMin.re = -3;
-    defMin.im = -3;
-	
-    point.max = &defMax;
-    point.min = &defMin;
-    
-    point.moveX = 0;
-    point.moveY = 0;
-    point.scale = 1;
-    
-    int a = ac;
-    char **b = av;
-
-    fract.mlx = mlx_init();
-    fract.win = mlx_new_window(fract.mlx, 800, 800, "fractol");
-    fract.img = mlx_new_image(fract.mlx, 800, 800);
-    fract.point = &point;
-
-    //mondel(&fract);
-    
-    //create(&fract);
-	
-	//julia(&fract, -0.7, 0.27015);
-	
-	ship(&fract);
-	
-    // mlx_key_hook(win, increase, 125);
-    // mlx_key_hook(win, decrease, 125);
-
-    mlx_hook(fract.win, 6, 0L, mouse_move, &fract);
-    mlx_hook(fract.win, 4, 0L, mouse_hook, &fract);
-
-    mlx_loop(fract.mlx);
-    return 0;
+	mlx_hook(fract->win, 6, 0L, mouse_move, &fract);
+	mlx_hook(fract->win, 4, 0L, mouse_hook, fract);
+	mlx_hook(fract->win, 2, 5, key_press, fract);
 }
+
+int basic_chec(int argc, char **argv, t_fract *fract)
+{
+	if (argc != 2)
+	{
+		ft_putendl("usage: fractol \"name of fractol\" [mandelbrot,julia,burningship]");
+		return (1);
+	}
+	if (select_fractal(fract, argv[1]))
+	{
+		ft_putendl("Wrong fractol name. Use [mandelbrot,julia,burningship]");
+		return (1);
+	}
+	if (setup_mlx(fract))
+	{
+		ft_putendl("Error init mlx");
+		return (1);
+	}
+	return (0);
+}
+
+int main(int argc, char **argv)
+{
+	t_fract fract;
+	t_viewpoint point;
+	t_complex_n defMax;
+	t_complex_n defMin;
+
+	fract.point = &point;
+	point.max = &defMax;
+	point.min = &defMin;
+	point.moveX = 0;
+	point.moveY = 0;
+	point.scale = 1;
+
+	if (basic_chec(argc, argv, &fract))
+		return (1);
+	create(&fract);
+	mlx_hooks_setup(&fract);
+	mlx_loop(fract.mlx);
+	return (0);
+}
+
+
