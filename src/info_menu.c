@@ -15,9 +15,12 @@
 char	*get_iteration(t_fract *fract)
 {
 	char	*iter_label;
+	char	*num;
 
 	iter_label = "Iterations ";
-	iter_label = ft_strjoin(iter_label, ft_itoa(fract->iterations));
+	num = ft_itoa(fract->iterations);
+	iter_label = ft_strjoin(iter_label, num);
+	free(num);
 	return (iter_label);
 }
 
@@ -25,14 +28,17 @@ char	*get_zoom(t_fract *fract)
 {
 	char	*zoom_label;
 	int		number;
+	char	*num;
 
 	zoom_label = "Zoom ";
 	number = (int)(1 / fract->point->scale * 100);
+	num = ft_itoa(number);
 	if (number < 0)
 		zoom_label = ft_strjoin(zoom_label, "too much");
 	else
 		zoom_label = ft_strjoin(zoom_label,
-						ft_itoa(number));
+						num);
+	free(num);
 	return (zoom_label);
 }
 
