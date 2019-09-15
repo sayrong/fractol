@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ft_strjoin.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jfrankly <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: balvyn-s <balvyn-s@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/12/01 11:20:35 by jfrankly          #+#    #+#             */
-/*   Updated: 2018/12/02 19:02:07 by jfrankly         ###   ########.fr       */
+/*   Created: 2018/12/03 19:36:54 by balvyn-s          #+#    #+#             */
+/*   Updated: 2018/12/05 22:01:33 by balvyn-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,21 +14,17 @@
 
 char	*ft_strjoin(char const *s1, char const *s2)
 {
-	char	*new;
-	size_t	i;
-	size_t	j;
+	char	*t_s;
+	size_t	total_size;
 
-	if (!s1 && !s2)
+	if (s1 == NULL || s2 == NULL)
 		return (NULL);
-	new = (char *)malloc(ft_strlen(s1) + ft_strlen(s2) + 1);
-	if (!new)
-		return (NULL);
-	i = -1;
-	while (s1[++i])
-		new[i] = s1[i];
-	j = 0;
-	while (s2[j])
-		new[i++] = s2[j++];
-	new[i] = '\0';
-	return (new);
+	total_size = ft_strlen(s1) + ft_strlen(s2) + 1;
+	t_s = (char *)malloc(sizeof(char) * total_size);
+	if (t_s)
+	{
+		ft_strcpy(t_s, s1);
+		ft_strcat(t_s, s2);
+	}
+	return (t_s);
 }

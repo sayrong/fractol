@@ -3,44 +3,55 @@
 /*                                                        :::      ::::::::   */
 /*   ft_strtrim.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jfrankly <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: balvyn-s <balvyn-s@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/12/01 11:49:16 by jfrankly          #+#    #+#             */
-/*   Updated: 2018/12/02 19:18:06 by jfrankly         ###   ########.fr       */
+/*   Created: 2018/12/03 19:47:33 by balvyn-s          #+#    #+#             */
+/*   Updated: 2018/12/05 21:05:22 by balvyn-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-static	int		ft2_w(char c)
+static int		get_bspaces(char const *s, size_t size)
 {
-	if (c == ' ' || c == '\t' || c == '\n')
-		return (1);
-	return (0);
+	int back;
+
+	back = 0;
+	while (s[size - 1] == ' ' || s[size - 1] == '\n' || s[size - 1] == '\t')
+	{
+		size--;
+		back++;
+	}
+	return (back);
+}
+
+static int		get_fspaces(char const *s)
+{
+	int front;
+
+	front = 0;
+	while (*s == ' ' || *s == '\n' || *s == '\t')
+	{
+		front++;
+		s++;
+	}
+	return (front);
 }
 
 char			*ft_strtrim(char const *s)
 {
-	int		i;
-	int		l;
-	char	*new;
+	char	*t_s;
+	size_t	size;
+	int		front;
+	int		back;
 
 	if (s == NULL)
 		return (NULL);
-	l = ft_strlen(s);
-	while (ft2_w(s[l - 1]))
-		l--;
-	if (l <= 0)
-		l = 0;
-	i = -1;
-	while (ft2_w(s[++i]) && l != 0)
-		l--;
-	if (!(new = (char *)malloc(sizeof(char) * (l + 1))))
-		return (NULL);
-	s += i;
-	i = -1;
-	while (++i < l)
-		new[i] = *s++;
-	new[i] = '\0';
-	return (new);
+	size = ft_strlen(s);
+	back = get_bspaces(s, size);
+	front = get_fspaces(s);
+	if ((size_t)back == size)
+		back = 0;
+	t_s = ft_strsub(s, front, size - front - back);
+	return (t_s);
 }

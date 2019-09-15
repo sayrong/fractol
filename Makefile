@@ -1,5 +1,7 @@
 NAME = fractol
 
+SRCDIR = ./src/
+INCDIR = ./inc/
 SRC = main.c \
 	setup.c \
 	colors.c \
@@ -17,16 +19,13 @@ FLAGS = -Wall -Wextra -Werror -g
 
 MLX = ./minilibx_macos/
 MLX_LNK = -L ./minilibx_macos/ -lmlx -framework OpenGL -framework AppKit
-#FLAGS2 = -I /usr/local/include -L /usr/local/lib -lmlx -framework OpenGL -framework AppKit
-#FLAGS3 = /usr/local/lib/libmlx.a /usr/local/include/mlx.h -lXext -lX11 -lm
 FT = ./libft/
 FT_LNK = -L ./libft -lft
 
 all: $(NAME)
 
-%.o: %.c
-#	$(CC) $(FLAGS) -I $(MLX) -I $(FT) -c $< -o $@
-	$(CC) $(FLAGS) -I ./ -c $< -o $@
+%.o:$(SRCDIR)%.c
+	$(CC) $(FLAGS) -I $(INCDIR) -I $(FT) -I $(MLX) -c $< -o $@
 
 $(NAME): $(OBJ)
 	make -C $(FT)

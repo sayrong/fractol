@@ -3,54 +3,56 @@
 /*                                                        :::      ::::::::   */
 /*   ft_itoa.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jfrankly <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: balvyn-s <balvyn-s@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/12/02 11:07:12 by jfrankly          #+#    #+#             */
-/*   Updated: 2018/12/02 14:45:30 by jfrankly         ###   ########.fr       */
+/*   Created: 2018/12/03 18:33:24 by balvyn-s          #+#    #+#             */
+/*   Updated: 2018/12/14 21:38:11 by balvyn-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-static int	ft_cn(int n)
+static int		count_c(int n)
 {
-	int		i;
+	int count;
 
-	i = 0;
-	if (!n)
-		return (1);
-	while (n)
+	count = 1;
+	if (n < 0)
+		count++;
+	if (n == 0)
+		return (++count);
+	while (n != 0)
 	{
-		i++;
 		n /= 10;
+		count++;
 	}
-	return (i);
+	return (count);
 }
 
-char		*ft_itoa(int n)
+char			*ft_itoa(int n)
 {
-	char		*str;
-	int			l;
-	int			neg;
-	long	int	nb;
+	char	*nb;
+	int		count;
+	int		i;
+	int		minus;
 
-	nb = (long)n;
-	neg = 0;
-	if (nb < 0)
+	i = 0;
+	minus = 1;
+	count = count_c(n);
+	if ((nb = (char *)malloc(sizeof(char) * count)))
 	{
-		neg++;
-		nb *= -1;
+		if (n == 0)
+			nb[0] = '0';
+		minus = n < 0 ? -1 : 1;
+		while (n != 0)
+		{
+			nb[i++] = (n % 10) * minus + '0';
+			n /= 10;
+		}
+		if (minus < 0)
+			nb[i++] = '-';
+		nb[count - 1] = '\0';
+		ft_strrev(nb);
 	}
-	l = ft_cn(nb);
-	if (!(str = (char *)malloc(sizeof(char) * l + neg + 1)))
-		return (NULL);
-	str[l + neg] = '\0';
-	while (l || (neg && l > 0))
-	{
-		str[--l + neg] = nb % 10 + '0';
-		nb /= 10;
-	}
-	if (neg)
-		str[0] = '-';
-	return (str);
+	return (nb);
 }

@@ -3,27 +3,33 @@
 /*                                                        :::      ::::::::   */
 /*   ft_memmove.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jfrankly <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: balvyn-s <balvyn-s@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/11/29 17:10:17 by jfrankly          #+#    #+#             */
-/*   Updated: 2018/11/29 17:19:59 by jfrankly         ###   ########.fr       */
+/*   Created: 2018/11/25 19:28:28 by balvyn-s          #+#    #+#             */
+/*   Updated: 2018/12/12 21:17:07 by balvyn-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-void	*ft_memmove(void *dest, const void *src, size_t n)
+void	*ft_memmove(void *dst, const void *src, size_t len)
 {
-	unsigned char *p1;
-	unsigned char *p2;
+	char		*t_dst;
+	const char	*t_src;
 
-	p1 = dest;
-	p2 = (unsigned char *)src;
-	if (p2 < p1)
-		while (n--)
-			*(p1 + n) = *(p2 + n);
+	t_dst = dst;
+	t_src = src;
+	if (len == 0 || dst == src)
+		return (dst);
+	if ((unsigned long)dst < (unsigned long)src)
+	{
+		while (len-- != 0)
+			*t_dst++ = *t_src++;
+	}
 	else
-		while (n--)
-			*(p1++) = *(p2++);
-	return (dest);
+	{
+		while (len-- != 0)
+			t_dst[len] = t_src[len];
+	}
+	return ((void *)dst);
 }

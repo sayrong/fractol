@@ -3,23 +3,40 @@
 /*                                                        :::      ::::::::   */
 /*   ft_strlcat.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jfrankly <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: balvyn-s <balvyn-s@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/11/29 18:52:30 by jfrankly          #+#    #+#             */
-/*   Updated: 2018/11/29 18:53:11 by jfrankly         ###   ########.fr       */
+/*   Created: 2018/12/03 19:37:30 by balvyn-s          #+#    #+#             */
+/*   Updated: 2018/12/12 22:37:15 by balvyn-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-size_t	ft_strlcat(char *dest, const char *src, size_t size)
+size_t	ft_strlcat(char *dst, const char *src, size_t dstsize)
 {
-	size_t len;
+	char		*d;
+	const char	*s;
+	size_t		n;
+	size_t		dlen;
 
-	len = ft_strlen(dest);
-	if (size > len)
-		ft_strncat(dest, src, (size - len - 1));
-	if (size < len)
-		return (size + ft_strlen(src));
-	return (len + ft_strlen(src));
+	d = dst;
+	s = src;
+	n = dstsize;
+	while (n-- != 0 && *d != '\0')
+		d++;
+	dlen = d - dst;
+	n = dstsize - dlen;
+	if (n == 0)
+		return (dlen + ft_strlen(s));
+	while (*s != '\0')
+	{
+		if (n != 1)
+		{
+			*d++ = *s;
+			n--;
+		}
+		s++;
+	}
+	*d = '\0';
+	return (dlen + (s - src));
 }

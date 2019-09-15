@@ -3,40 +3,39 @@
 /*                                                        :::      ::::::::   */
 /*   ft_atoi.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jfrankly <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: balvyn-s <balvyn-s@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/11/29 19:06:26 by jfrankly          #+#    #+#             */
-/*   Updated: 2018/12/04 15:51:54 by jfrankly         ###   ########.fr       */
+/*   Created: 2018/08/27 17:35:31 by balvyn-s          #+#    #+#             */
+/*   Updated: 2018/12/07 23:47:04 by balvyn-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <string.h>
+#include "libft.h"
 
-int	ft_atoi(char *nb)
+int	ft_atoi(const char *str)
 {
-	long long int	res;
-	char			negative;
+	int				minus;
+	long long int	result;
+	int				overflow;
 
-	negative = 0;
-	res = 0;
-	while (*nb == '\n' || *nb == '\t' || *nb == '\r' || *nb == '\f'
-			|| *nb == ' ' || *nb == '\v')
-		nb++;
-	if (*nb == '-')
-		negative = 1;
-	if (*nb == '-' || *nb == '+')
-		nb++;
-	while (*nb != '\n' && *nb != '\t' && *nb != '\r' && *nb != '\f'
-			&& *nb != ' ' && *nb != '\v' && (*nb >= '0' && *nb <= '9'))
+	minus = 1;
+	result = 0;
+	overflow = 0;
+	while (*str == ' ' || (*str >= 9 && *str <= 14))
+		str++;
+	if (*str == '-')
+		minus = -1;
+	if (*str == '+' || *str == '-')
+		str++;
+	while (*str >= '0' && *str <= '9' && overflow++ < 19)
 	{
-		res = res * 10 + (*nb - '0');
-		if (res < 0 && negative == 1)
-			return (0);
-		else if (res < 0)
-			return (-1);
-		nb++;
+		result *= 10;
+		if (overflow == 19 && (9223372036854775807 - result) < (*str - 48))
+			return (minus > 0 ? -1 : 0);
+		result += *str - 48;
+		str++;
+		if (overflow == 20)
+			return (minus > 0 ? -1 : 0);
 	}
-	if (negative)
-		return (-res);
-	return (res);
+	return ((int)(result * minus));
 }
